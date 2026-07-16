@@ -255,3 +255,39 @@ export async function exportarExcel(): Promise<void> {
   a.remove()
   URL.revokeObjectURL(url)
 }
+
+/** Descarga los asistentes de una charla especifica como archivo Excel. */
+export async function exportarExcelDeCharla(charlaId: number, nombreCharla?: string): Promise<void> {
+  const headers: Record<string, string> = {}
+  const clave = getAdminKey()
+  if (clave) headers['X-Admin-Key'] = clave
+
+  let res: Response
+  try {
+    res = await fetch(`${BASE}/api/carga/exportar/charla/${charlaId}`, { headers })
+  } catch {
+    throw new ApiError(0, 'No se pudo conectar con el servidor.')
+  }
+  if (!res.ok) {
+    let mensaje = `Error ${res.status}`
+    try {
+      const d = JSON.parse(await res.text())
+      mensaje = d?.mensaje ?? mensaje
+    } catch {
+      /* respuesta sin cuerpo JSON */
+    }
+    throw new ApiError(res.status, mensaje)
+  }
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  const nombreLimpio = nombreCharla
+    ? nombreCharla.replace(/[^a-zA-Z0-9]+/g, '_')
+    : `charla_${charlaId}`
+  a.download = `CHARLA_${nombreLimpio}_${new Date().toISOString().slice(0, 10)}.xlsx`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -9,9 +9,12 @@ import {
   Upload,
 } from 'lucide-react'
 import {
+  api,
   ApiError,
   exportarExcel,
+  exportarExcelDeCharla,
   importarExcel,
+  type Charla,
   type ResultadoCarga,
 } from '../api'
 import PageHeader from '../components/PageHeader'
@@ -25,6 +28,19 @@ export default function BaseDatos() {
   const [importando, setImportando] = useState(false)
   const [exportando, setExportando] = useState(false)
   const [resultado, setResultado] = useState<ResultadoCarga | null>(null)
+  const [charlas, setCharlas] = useState<Charla[]>([])
+  const [charlaSelId, setCharlaSelId] = useState<string>('')
+  const [exportandoCharla, setExportandoCharla] = useState(false)
+
+  useEffect(() => {
+    if (!esAdmin) return
+    api
+      .listarCharlas(true, true)
+      .then(setCharlas)
+      .catch(() => {
+        /* silencioso */
+      })
+  }, [esAdmin])
 
   function manejar401(e: unknown): boolean {
     if (e instanceof ApiError && e.status === 401) {
@@ -40,6 +56,11 @@ export default function BaseDatos() {
       notificar('info', 'Selecciona un archivo Excel (.xlsx).')
       return
     }
+    const ok = confirm(
+      '¿Reemplazar TODA la base actual con este archivo?\n\n' +
+        'Se borrarán los ingresos al evento y las inscripciones a charlas del archivo anterior.',
+    )
+    if (!ok) return
     setImportando(true)
     setResultado(null)
     try {
@@ -62,6 +83,24 @@ export default function BaseDatos() {
       if (!manejar401(e)) notificar('error', e instanceof Error ? e.message : 'Error al exportar')
     } finally {
       setExportando(false)
+    }
+  }
+
+  async function exportarCharla() {
+    if (!charlaSelId) {
+      notificar('info', 'Elige una charla para descargar sus asistentes.')
+      return
+    }
+    const id = Number(charlaSelId)
+    const charla = charlas.find((c) => c.id === id)
+    setExportandoCharla(true)
+    try {
+      await exportarExcelDeCharla(id, charla?.nombre)
+      notificar('exito', 'Descarga de la charla iniciada.')
+    } catch (e) {
+      if (!manejar401(e)) notificar('error', e instanceof Error ? e.message : 'Error al exportar')
+    } finally {
+      setExportandoCharla(false)
     }
   }
 
@@ -103,8 +142,8 @@ export default function BaseDatos() {
             Importar base de datos
           </h2>
           <p className="mb-4 text-sm text-slate-500">
-            Sube el archivo Excel (.xlsx) con la base de pre-registro. Sin limite de filas; los DNI
-            existentes se actualizan, no se duplican.
+            Sube el archivo Excel (.xlsx). Sin limite de filas. <b>Reemplaza toda la base actual</b>
+            {' '}(los ingresos al evento y las inscripciones a charlas del archivo anterior se pierden).
           </p>
           <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 px-4 py-8 text-center hover:border-blue-400 hover:bg-blue-50/40">
             <FileSpreadsheet className="h-8 w-8 text-slate-400" />
@@ -170,17 +209,52 @@ export default function BaseDatos() {
             Descargar base de datos
           </h2>
           <p className="mb-4 text-sm text-slate-500">
-            Descarga toda la base de asistentes (incluidos los nuevos registrados) en un Excel con
-            el mismo formato del archivo de origen.
+            Descarga la base completa o solo los asistentes de una charla en particular.
           </p>
-          <button
-            onClick={exportar}
-            disabled={exportando}
-            className="flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
-          >
-            <Download className="h-4 w-4" />
-            {exportando ? 'Generando...' : 'Descargar Excel'}
-          </button>
+
+          <div className="space-y-4">
+            <div>
+              <p className="mb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                Toda la base
+              </p>
+              <button
+                onClick={exportar}
+                disabled={exportando}
+                className="flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+              >
+                <Download className="h-4 w-4" />
+                {exportando ? 'Generando...' : 'Descargar Excel completo'}
+              </button>
+            </div>
+
+            <div className="border-t border-slate-200 pt-4">
+              <p className="mb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                Por charla
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <select
+                  value={charlaSelId}
+                  onChange={(e) => setCharlaSelId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 sm:flex-1"
+                >
+                  <option value="">Selecciona una charla...</option>
+                  {charlas.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre} ({c.sala}) — {c.registrados} inscritos
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={exportarCharla}
+                  disabled={exportandoCharla || !charlaSelId}
+                  className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-green-600 px-5 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+                >
+                  <Download className="h-4 w-4" />
+                  {exportandoCharla ? 'Generando...' : 'Descargar de la charla'}
+                </button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">

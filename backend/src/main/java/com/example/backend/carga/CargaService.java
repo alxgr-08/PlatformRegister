@@ -89,11 +89,25 @@ public class CargaService {
             """;
 
     private static final String SELECT_EXPORT_SQL = """
-            select dni, nombre_completo, celular, correo, especialidad, fecha_ingreso_evento
+            select dni, nombre_completo, celular, correo, especialidad,
+                   fecha_ingreso_evento as hora
             from asistente
             where fecha_ingreso_evento is not null
             order by fecha_ingreso_evento, id
             """;
+
+    private static final String SELECT_EXPORT_POR_CHARLA_SQL = """
+            select a.dni, a.nombre_completo, a.celular, a.correo, a.especialidad,
+                   rc.registrado_en as hora
+            from asistente a
+            join registro_charla rc on rc.asistente_id = a.id
+            where rc.charla_id = ?
+            order by rc.registrado_en
+            """;
+
+    private static final String[] CABECERAS_EXPORT = {
+            "DNI", "NOMBRE", "CELULAR", "CORREO", "ESPECIALIDAD", "HORA DE REGISTRO"
+    };
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -107,10 +121,15 @@ public class CargaService {
 
     // ============================================================ IMPORTAR EXCEL
 
+    @Transactional
     public Resultado importarAsistentesExcel(MultipartFile archivo) {
         if (archivo == null || archivo.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Debe adjuntar un archivo Excel (.xlsx) no vacio.");
         }
+        // Modo REEMPLAZO: la nueva base sustituye por completo a la anterior.
+        // Al ir dentro de una transaccion, si la carga falla se restaura el estado previo.
+        jdbcTemplate.update("delete from registro_charla");
+        jdbcTemplate.update("delete from asistente");
         LectorExcel lector = new LectorExcel();
         try (OPCPackage pkg = OPCPackage.open(archivo.getInputStream())) {
             ReadOnlySharedStringsTable strings = new ReadOnlySharedStringsTable(pkg);
@@ -282,34 +301,45 @@ public class CargaService {
 
     @Transactional(readOnly = true)
     public void exportarAsistentesExcel(OutputStream out) throws IOException {
-        String[] cabeceras = {
-                "DNI", "NOMBRE", "CELULAR", "CORREO", "ESPECIALIDAD", "HORA DE REGISTRO"
-        };
+        escribirExportacion(SELECT_EXPORT_SQL, new Object[0], out);
+    }
+
+    /** Descarga solo los asistentes inscritos en una charla especifica. */
+    @Transactional(readOnly = true)
+    public void exportarAsistentesDeCharlaExcel(long charlaId, OutputStream out) throws IOException {
+        escribirExportacion(SELECT_EXPORT_POR_CHARLA_SQL, new Object[]{charlaId}, out);
+    }
+
+    /** Genera un Excel con las 6 columnas de CABECERAS_EXPORT segun el SQL indicado (streaming). */
+    private void escribirExportacion(String sql, Object[] params, OutputStream out) throws IOException {
         try (SXSSFWorkbook wb = new SXSSFWorkbook(100)) {
             Sheet sheet = wb.createSheet("Asistentes");
             Row cab = sheet.createRow(0);
-            for (int i = 0; i < cabeceras.length; i++) {
-                cab.createCell(i).setCellValue(cabeceras[i]);
+            for (int i = 0; i < CABECERAS_EXPORT.length; i++) {
+                cab.createCell(i).setCellValue(CABECERAS_EXPORT[i]);
             }
             int[] fila = {1};
             jdbcTemplate.query(
                     con -> {
-                        PreparedStatement ps = con.prepareStatement(SELECT_EXPORT_SQL,
+                        PreparedStatement ps = con.prepareStatement(sql,
                                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+                        for (int i = 0; i < params.length; i++) {
+                            ps.setObject(i + 1, params[i]);
+                        }
                         ps.setFetchSize(1000);
                         return ps;
                     },
                     (ResultSet rs) -> {
                         Row r = sheet.createRow(fila[0]++);
-                        Timestamp fechaIngreso = rs.getTimestamp("fecha_ingreso_evento");
+                        Timestamp hora = rs.getTimestamp("hora");
 
                         escribirNumeroOTexto(r.createCell(0), rs.getString("dni"));
                         r.createCell(1).setCellValue(valorSeguro(rs.getString("nombre_completo")));
                         escribirNumeroOTexto(r.createCell(2), rs.getString("celular"));
                         r.createCell(3).setCellValue(valorSeguro(rs.getString("correo")));
                         r.createCell(4).setCellValue(valorSeguro(rs.getString("especialidad")));
-                        r.createCell(5).setCellValue(fechaIngreso == null ? ""
-                                : FORMATO_FECHA.format(fechaIngreso.toLocalDateTime()));
+                        r.createCell(5).setCellValue(hora == null ? ""
+                                : FORMATO_FECHA.format(hora.toLocalDateTime()));
                     });
             wb.write(out);
         }

@@ -5,6 +5,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -42,6 +43,16 @@ public class CargaController {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"");
         service.exportarAsistentesExcel(response.getOutputStream());
+        response.flushBuffer();
+    }
+
+    /** Descarga los asistentes inscritos en una charla especifica. */
+    @GetMapping("/exportar/charla/{id}")
+    public void exportarCharla(@PathVariable Long id, HttpServletResponse response) throws IOException {
+        String nombre = "CHARLA_" + id + "_" + LocalDate.now() + ".xlsx";
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"");
+        service.exportarAsistentesDeCharlaExcel(id, response.getOutputStream());
         response.flushBuffer();
     }
 
