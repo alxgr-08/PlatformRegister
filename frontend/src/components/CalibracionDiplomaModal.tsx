@@ -4,9 +4,12 @@ import {
   AlignLeft,
   AlignRight,
   Bold,
+  Image as ImageIcon,
   Move,
   Printer,
+  RotateCcw,
   Save,
+  Trash2,
   X,
 } from 'lucide-react'
 import {
@@ -18,7 +21,13 @@ import {
   type CampoDiplomaId,
   type Diploma,
 } from '../api'
-import { CAMPOS, PX_POR_MM, estiloCampo, textoDelCampo } from '../lib/diploma'
+import { CALIBRACION_SUGERIDA, CAMPOS, PX_POR_MM, estiloCampo, textoDelCampo } from '../lib/diploma'
+import {
+  comprimirImagen,
+  guardarFondoGuia,
+  leerFondoGuia,
+  olvidarFondoGuia,
+} from '../lib/fondoDiploma'
 import AreaImpresion from './AreaImpresion'
 import DiplomaHoja from './DiplomaHoja'
 import { useToast } from './Toast'
@@ -79,6 +88,7 @@ export default function CalibracionDiplomaModal({
   const [imprimiendoPrueba, setImprimiendoPrueba] = useState(false)
   const contenedorRef = useRef<HTMLDivElement>(null)
   const [anchoDisponible, setAnchoDisponible] = useState(560)
+  const [fondo, setFondo] = useState<string | null>(() => leerFondoGuia())
 
   const muestra = ejemplo ?? EJEMPLO
   const escala = Math.min(1, anchoDisponible / (cal.anchoHoja * PX_POR_MM))
@@ -140,6 +150,31 @@ export default function CalibracionDiplomaModal({
     })
   }
 
+  /** Vuelve a las posiciones pensadas para el arte del diploma. */
+  function restaurarSugeridas() {
+    if (!confirm('Se volveran a las posiciones sugeridas para el arte del diploma. Continuar?')) {
+      return
+    }
+    setCal(CALIBRACION_SUGERIDA)
+  }
+
+  /** Carga el arte del diploma como fondo de referencia (no se imprime). */
+  async function cargarFondo(archivo: File) {
+    try {
+      const dataUrl = await comprimirImagen(archivo)
+      guardarFondoGuia(dataUrl)
+      setFondo(dataUrl)
+      notificar('exito', 'Guia cargada. Solo se ve aqui: nunca se imprime.')
+    } catch (e) {
+      notificar('error', e instanceof Error ? e.message : 'No se pudo cargar la imagen.')
+    }
+  }
+
+  function quitarFondo() {
+    olvidarFondoGuia()
+    setFondo(null)
+  }
+
   /** Imprime una hoja de prueba con los datos de ejemplo, sin marcar nada. */
   function imprimirPrueba() {
     setImprimiendoPrueba(true)
@@ -185,10 +220,37 @@ export default function CalibracionDiplomaModal({
         <div className="grid gap-5 p-5 lg:grid-cols-[1fr_20rem]">
           {/* --------------------------------------------------- Vista previa */}
           <div>
-            <p className="mb-2 flex items-center gap-1.5 text-xs text-slate-500">
-              <Move className="h-3.5 w-3.5" />
-              Arrastra cada texto para moverlo. El arte del diploma no se imprime: solo los textos.
-            </p>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-xs text-slate-500">
+                <Move className="h-3.5 w-3.5" />
+                Arrastra cada texto para moverlo. Solo se imprimen los textos.
+              </p>
+              <div className="flex items-center gap-1.5">
+                <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  {fondo ? 'Cambiar guía' : 'Subir imagen de guía'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const archivo = e.target.files?.[0]
+                      if (archivo) cargarFondo(archivo)
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+                {fondo && (
+                  <button
+                    onClick={quitarFondo}
+                    title="Quitar la imagen de guía"
+                    className="rounded-lg border border-slate-300 p-1.5 text-slate-500 hover:bg-slate-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
             <div ref={contenedorRef} className="overflow-hidden rounded-lg bg-slate-100 p-2">
               <div className="relative" style={{ width: cal.anchoHoja * PX_POR_MM * escala }}>
                 <DiplomaHoja
@@ -204,6 +266,7 @@ export default function CalibracionDiplomaModal({
                   }}
                   escala={escala}
                   conGuias
+                  fondo={fondo}
                 />
                 {/* Capa de textos arrastrables, a la misma escala que la hoja. */}
                 <div
@@ -258,6 +321,11 @@ export default function CalibracionDiplomaModal({
                 </button>
               ))}
             </div>
+            <p className="mt-2 text-xs text-slate-400">
+              {fondo
+                ? 'La imagen de guía se ve solo en esta pantalla y solo en este dispositivo: nunca se imprime.'
+                : 'Sube el arte del diploma como guía para calzar los textos exactos. No se imprime.'}
+            </p>
           </div>
 
           {/* ------------------------------------------------------ Controles */}
@@ -455,6 +523,13 @@ export default function CalibracionDiplomaModal({
             </section>
 
             <div className="flex flex-col gap-2">
+              <button
+                onClick={restaurarSugeridas}
+                className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Restaurar posiciones sugeridas
+              </button>
               <button
                 onClick={imprimirPrueba}
                 className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
