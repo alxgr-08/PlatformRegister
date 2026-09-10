@@ -109,8 +109,8 @@ Base URL: `http://localhost:8080`
 | POST   | `/api/asistentes/{dni}/ingreso` | Registra el ingreso al evento |
 | DELETE | `/api/asistentes/{dni}/ingreso` | Deshace el ingreso al evento |
 
-Si el **aforo del evento** esta configurado (distinto de 0) y ya se alcanzo, el
-registro de ingreso responde 409 y pide ampliarlo desde la pantalla de Asistentes.
+El registro de ingreso no tiene tope: el evento admite todas las personas que
+lleguen.
 
 ### Modulo Salas
 
@@ -137,17 +137,24 @@ registro de ingreso responde 409 y pide ampliarlo desde la pantalla de Asistente
 | DELETE | `/api/charlas/{id}/registros/{dni}` | Deshace una inscripcion |
 | GET    | `/api/charlas/{id}/registros` | Lista los inscritos de la charla |
 
-Solo se puede inscribir a personas que **ya registraron su ingreso al evento**, y la
-base impide inscribir dos veces el mismo DNI en la misma charla.
+Solo se puede inscribir a personas que **ya registraron su ingreso al evento**. La
+base impide inscribir dos veces el mismo DNI en la misma charla, y el servicio
+rechaza inscribirlo en dos charlas cuyo horario se cruza, aunque sean de salas
+distintas: nadie puede estar en dos charlas a la vez.
 
 ### Modulo Configuracion
 
 | Metodo | Ruta | Descripcion |
 |--------|------|-------------|
-| GET    | `/api/configuracion/aforo` | Aforo del evento y su ocupacion |
-| PUT    | `/api/configuracion/aforo` | Cambia el aforo del evento (0 = sin limite) - **ADMIN** |
+| GET    | `/api/configuracion/contador` | Contador: registrados por DNI + agregados a mano |
+| POST   | `/api/configuracion/contador` | Suma personas al contador (negativo para restar) - **ADMIN** |
+| PUT    | `/api/configuracion/contador` | Fija el total de personas agregadas a mano - **ADMIN** |
 | GET    | `/api/configuracion/diploma` | Calibracion de impresion del diploma |
 | PUT    | `/api/configuracion/diploma` | Guarda la calibracion del diploma - **ADMIN** |
+
+El evento **no tiene tope de personas**. El contador manual sirve para sumar a la
+gente que entro sin pasar por el registro: es solo un numero, no crea asistentes ni
+aparece en charlas, diplomas o reportes.
 
 La calibracion del diploma se guarda en la base, no en el navegador: se ajusta
 **una sola vez** y vale para todas las hojas y todos los dispositivos.

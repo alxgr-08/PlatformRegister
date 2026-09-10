@@ -24,8 +24,11 @@ Entra con **"Ingresar como Admin"** en la barra superior y ve a **Configuración
 2. Dentro de cada sala, agrega sus charlas con **marca**, **capacitador**,
    fecha, horario y aforo. La marca y el capacitador salen impresos en el diploma.
 
-En **Asistentes** puedes fijar el **aforo del evento** (0 = sin límite). Si el
-evento se llena, se amplía desde ahí sin tocar nada más.
+El evento **no tiene tope de personas**. En **Asistentes**, solo el administrador
+ve el **contador de asistentes** y puede sumar a mano a la gente que entró sin
+pasar por el registro (por ejemplo, "agregar 20"). Eso es únicamente un número
+para el total: esas personas no tienen DNI, no se inscriben en charlas y no les
+sale diploma.
 
 ### 3. Cada dispositivo elige su sala
 
@@ -37,13 +40,17 @@ página, y se cambia con **"Cambiar de sala"**.
 Flujo de registro en la sala:
 
 1. Buscar el DNI. Solo acepta personas **ya registradas al evento**.
-2. Marcar charlas con **"Agregar"**.
-3. Presionar **"Guardar"**. La pantalla **no se reinicia**: se puede cambiar de
-   sala y seguir agregándole charlas a la misma persona.
-4. Al terminar con esa persona, presionar **"Siguiente"**.
+2. En la charla, presionar **"Agregar"**.
+3. Presionar el **"GUARDAR"** de esa misma charla, ahí mismo. No hay que bajar
+   al final de la lista: cada charla se guarda por separado, así no se pierde
+   lo marcado en el celular.
+4. La pantalla **no se reinicia**: se puede usar "Cambiar de sala" y seguir
+   agregándole charlas a la misma persona.
+5. Al terminar con esa persona, presionar **"Siguiente"**.
 
-Un mismo DNI no puede inscribirse dos veces en la misma charla, y cuando una
-charla llega a su aforo se bloquea sola.
+Un mismo DNI no puede inscribirse dos veces en la misma charla ni en dos charlas
+que se cruzan de horario, aunque sean de salas distintas. Cuando una charla llega
+a su aforo se bloquea sola.
 
 ### 4. Diplomas
 

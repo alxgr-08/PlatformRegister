@@ -153,22 +153,30 @@ export default function Asistentes() {
           <TarjetaStat
             etiqueta="REGISTRADOS AL EVENTO"
             valor={stats?.totalIngresadosAlEvento}
-            detalle={stats ? `${stats.porcentajeIngresados}% de la base` : undefined}
+            detalle={
+              stats
+                ? stats.agregadosManualmente > 0
+                  ? `${stats.registradosPorDni.toLocaleString('es-PE')} por DNI + ${stats.agregadosManualmente.toLocaleString('es-PE')} agregados`
+                  : 'DNI únicos registrados'
+                : undefined
+            }
             acento
           />
           <TarjetaStat
             etiqueta="PRE-REGISTRADOS QUE INGRESARON"
             valor={stats?.preRegistradosIngresados}
-            detalle={stats ? `${stats.porcentajePreRegistrados}% de los registrados` : undefined}
+            detalle={
+              stats ? `${stats.porcentajePreRegistrados}% de los registrados por DNI` : undefined
+            }
           />
           <TarjetaStat
             etiqueta="NUEVOS QUE INGRESARON"
             valor={stats?.nuevosIngresados}
-            detalle={stats ? `${stats.porcentajeNuevos}% de los registrados` : undefined}
+            detalle={stats ? `${stats.porcentajeNuevos}% de los registrados por DNI` : undefined}
           />
         </div>
 
-        <AforoEventoPanel stats={stats} onCambio={cargarStats} />
+        <ContadorManualPanel stats={stats} onCambio={cargarStats} />
 
         <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
           <h2 className="mb-3 font-semibold text-blue-700">1. Buscar por DNI</h2>
@@ -341,10 +349,14 @@ function TarjetaStat({
 }
 
 /**
- * Aforo del evento. Lo ve todo el mundo, pero solo el administrador puede
- * cambiarlo: si el evento se llena, se amplia desde aqui sin tocar nada mas.
+ * Contador de asistentes al evento (solo administrador).
+ *
+ * El evento no tiene tope: esto no limita nada. Sirve para sumar a mano la
+ * gente que entro sin pasar por el registro, para que el total refleje cuanta
+ * gente hubo. Esas personas son solo un numero: no tienen DNI, no se pueden
+ * inscribir en charlas ni les sale diploma.
  */
-function AforoEventoPanel({
+function ContadorManualPanel({
   stats,
   onCambio,
 }: {
@@ -354,116 +366,124 @@ function AforoEventoPanel({
   const { notificar } = useToast()
   const { esAdmin, salir } = useAdmin()
   const [editando, setEditando] = useState(false)
-  const [valor, setValor] = useState('0')
+  const [cantidad, setCantidad] = useState('10')
   const [guardando, setGuardando] = useState(false)
 
-  // Solo el administrador ve el aforo: el personal de puerta no debe tocarlo.
+  // El personal de puerta no ve ni toca este contador.
   if (!stats || !esAdmin) return null
 
-  const ingresados = stats.totalIngresadosAlEvento
+  const agregados = stats.agregadosManualmente
 
-  function abrir() {
-    setValor(String(stats?.aforoEvento ?? 0))
-    setEditando(true)
+  function manejarError(e: unknown) {
+    if (e instanceof ApiError && e.status === 401) {
+      salir()
+      notificar('error', 'Sesión de administrador expirada. Ingresa la clave de nuevo.')
+    } else {
+      notificar('error', e instanceof Error ? e.message : 'Error al cambiar el contador')
+    }
   }
 
-  async function guardar() {
-    const aforo = Number(valor)
-    if (!Number.isFinite(aforo) || aforo < 0) {
-      notificar('info', 'El aforo debe ser un numero de 0 o mas (0 = sin limite).')
-      return
-    }
-    // Es el TOTAL maximo, no una cantidad a sumar: por eso no puede quedar por
-    // debajo de la gente que ya entro.
-    if (aforo > 0 && aforo < ingresados) {
-      notificar(
-        'info',
-        `Ya ingresaron ${ingresados.toLocaleString('es-PE')} personas. Escribe el total maximo (por ejemplo ${(ingresados + 10).toLocaleString('es-PE')}), no la cantidad que quieres sumar.`,
-      )
+  async function agregar(n: number) {
+    if (!Number.isFinite(n) || n === 0) {
+      notificar('info', 'Escribe cuántas personas quieres agregar.')
       return
     }
     setGuardando(true)
     try {
-      await api.guardarAforoEvento(aforo)
-      notificar('exito', aforo === 0 ? 'Aforo sin limite.' : `Aforo del evento: ${aforo}.`)
+      await api.agregarAlContador(n)
+      notificar(
+        'exito',
+        n > 0 ? `${n} persona(s) agregadas al contador.` : `${-n} persona(s) descontadas.`,
+      )
       setEditando(false)
       onCambio()
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        salir()
-        notificar('error', 'Sesión de administrador expirada. Ingresa la clave de nuevo.')
-      } else {
-        notificar('error', e instanceof Error ? e.message : 'Error al guardar el aforo')
-      }
+      manejarError(e)
     } finally {
       setGuardando(false)
     }
   }
 
-  const pct = Math.min(stats.porcentajeAforo, 100)
-  const color = pct < 60 ? 'bg-green-500' : pct < 85 ? 'bg-amber-500' : 'bg-red-500'
+  async function ponerEnCero() {
+    if (!confirm('¿Quitar las personas agregadas a mano y dejar solo las registradas por DNI?')) {
+      return
+    }
+    setGuardando(true)
+    try {
+      await api.fijarAgregadosAlContador(0)
+      notificar('info', 'Contador manual en cero.')
+      onCambio()
+    } catch (e) {
+      manejarError(e)
+    } finally {
+      setGuardando(false)
+    }
+  }
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold tracking-wide text-slate-500">
-            AFORO DEL EVENTO <span className="font-normal text-slate-400">· solo administrador</span>
+            CONTADOR DE ASISTENTES{' '}
+            <span className="font-normal text-slate-400">· solo administrador</span>
           </p>
-          {stats.aforoSinLimite ? (
-            <p className="mt-1 text-lg font-semibold text-slate-700">
-              Sin límite
-              <span className="ml-2 text-sm font-normal text-slate-500">
-                ({ingresados.toLocaleString('es-PE')} ingresados)
-              </span>
-            </p>
-          ) : (
-            <p className="mt-1 text-lg font-semibold text-slate-800">
-              {ingresados.toLocaleString('es-PE')} de {stats.aforoEvento.toLocaleString('es-PE')}
-              <span className="ml-2 text-sm font-normal text-slate-500">
-                ({stats.porcentajeAforo}%)
-              </span>
-            </p>
+          <p className="mt-1 text-lg font-semibold text-slate-800">
+            {stats.registradosPorDni.toLocaleString('es-PE')} por DNI
+            {agregados > 0 && (
+              <>
+                {' + '}
+                <span className="text-blue-700">
+                  {agregados.toLocaleString('es-PE')} agregadas
+                </span>
+                {' = '}
+                {stats.totalIngresadosAlEvento.toLocaleString('es-PE')}
+              </>
+            )}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {agregados > 0 && (
+            <button
+              onClick={ponerEnCero}
+              disabled={guardando}
+              className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+            >
+              Poner en cero
+            </button>
+          )}
+          {!editando && (
+            <button
+              onClick={() => setEditando(true)}
+              className="flex items-center gap-2 rounded-lg border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+            >
+              <UserPlus className="h-4 w-4" />
+              Agregar personas
+            </button>
           )}
         </div>
-        {!editando && (
-          <button
-            onClick={abrir}
-            className="flex items-center gap-2 rounded-lg border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-          >
-            <Pencil className="h-4 w-4" />
-            Cambiar aforo
-          </button>
-        )}
       </div>
-
-      {!stats.aforoSinLimite && (
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-200">
-          <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
-        </div>
-      )}
 
       {editando ? (
         <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50/60 p-3">
           <label className="mb-1 block text-sm font-medium text-slate-700">
-            Aforo máximo del evento
+            ¿Cuántas personas agregar?
           </label>
           <div className="flex flex-wrap items-center gap-2">
             <input
               type="number"
-              min={0}
               autoFocus
-              className="w-32 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              value={valor}
-              onChange={(e) => setValor(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && guardar()}
+              className="w-28 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              value={cantidad}
+              onChange={(e) => setCantidad(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && agregar(Number(cantidad))}
             />
             <button
-              onClick={guardar}
+              onClick={() => agregar(Number(cantidad))}
               disabled={guardando}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
-              {guardando ? 'Guardando...' : 'Guardar'}
+              {guardando ? 'Agregando...' : 'Agregar'}
             </button>
             <button
               onClick={() => setEditando(false)}
@@ -471,17 +491,27 @@ function AforoEventoPanel({
             >
               Cancelar
             </button>
+            <div className="flex gap-1.5">
+              {[10, 50, 100].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setCantidad(String(n))}
+                  className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  +{n}
+                </button>
+              ))}
+            </div>
           </div>
           <p className="mt-2 text-xs text-slate-600">
-            Es el <b>total de personas</b> que pueden ingresar, no la cantidad que quieres sumar.
-            Ya ingresaron <b>{ingresados.toLocaleString('es-PE')}</b>: para dejar entrar 10 más,
-            escribe <b>{(ingresados + 10).toLocaleString('es-PE')}</b>. Con <b>0</b> queda sin
-            límite.
+            Suma la gente que entró sin registrar su DNI. Es <b>solo un contador</b>: no aparecen
+            en charlas, diplomas ni reportes. Usa un número negativo para descontar.
           </p>
         </div>
       ) : (
         <p className="mt-2 text-xs text-slate-400">
-          Tope de personas que pueden ingresar al evento. Con 0 queda sin límite.
+          El evento no tiene tope de personas. Usa esto para sumar a los que entraron sin
+          registrar su DNI.
         </p>
       )}
     </section>

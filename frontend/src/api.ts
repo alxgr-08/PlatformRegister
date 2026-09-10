@@ -25,6 +25,10 @@ export interface BusquedaAsistente {
 
 export interface EstadisticasAsistentes {
   totalAsistentes: number
+  /** Personas que pasaron por el registro y tienen su DNI en la base. */
+  registradosPorDni: number
+  /** Personas sumadas a mano por el administrador: solo cuentan en el total. */
+  agregadosManualmente: number
   totalIngresadosAlEvento: number
   preRegistradosEnBase: number
   nuevosEnBase: number
@@ -33,17 +37,12 @@ export interface EstadisticasAsistentes {
   porcentajeIngresados: number
   porcentajePreRegistrados: number
   porcentajeNuevos: number
-  aforoEvento: number
-  porcentajeAforo: number
-  aforoSinLimite: boolean
 }
 
-export interface AforoEvento {
-  aforo: number
-  registrados: number
-  disponibles: number
-  porcentajeOcupacion: number
-  sinLimite: boolean
+export interface ContadorEvento {
+  registradosPorDni: number
+  agregadosManualmente: number
+  total: number
 }
 
 export type NivelOcupacion = 'VERDE' | 'NARANJA' | 'ROJO'
@@ -350,10 +349,23 @@ export const api = {
     request<Charla>(`/api/charlas/${charlaId}/visibilidad`, { method: 'PATCH', body: { oculta } }),
 
   // --- Configuracion ---
-  aforoEvento: () => request<AforoEvento>('/api/configuracion/aforo'),
+  contadorEvento: () => request<ContadorEvento>('/api/configuracion/contador'),
 
-  guardarAforoEvento: (aforo: number) =>
-    request<AforoEvento>('/api/configuracion/aforo', { method: 'PUT', body: { aforo }, admin: true }),
+  /** Suma personas al contador del evento (negativo para restar). */
+  agregarAlContador: (cantidad: number) =>
+    request<ContadorEvento>('/api/configuracion/contador', {
+      method: 'POST',
+      body: { cantidad },
+      admin: true,
+    }),
+
+  /** Fija el total de personas agregadas a mano (se usa para ponerlo en cero). */
+  fijarAgregadosAlContador: (agregados: number) =>
+    request<ContadorEvento>('/api/configuracion/contador', {
+      method: 'PUT',
+      body: { agregados },
+      admin: true,
+    }),
 
   calibracionDiploma: () => request<CalibracionDiploma>('/api/configuracion/diploma'),
 

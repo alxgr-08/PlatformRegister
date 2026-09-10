@@ -85,14 +85,7 @@ public class AsistenteService {
             throw new ApiException(HttpStatus.CONFLICT,
                     "El DNI " + a.getDni() + " ya fue registrado al evento.");
         }
-        // Aforo del evento: 0 significa sin limite. Si se llena, el administrador
-        // puede subirlo desde la pantalla de registro general.
-        int aforo = configuracion.leerAforo();
-        if (aforo > 0 && repo.countByFechaIngresoEventoIsNotNull() >= aforo) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Se alcanzo el aforo del evento (" + aforo
-                            + "). El administrador puede ampliarlo para seguir registrando.");
-        }
+        // El evento no tiene tope de personas: aqui no se bloquea a nadie.
         a.setFechaIngresoEvento(LocalDateTime.now());
         return aRespuesta(repo.save(a));
     }
@@ -122,17 +115,16 @@ public class AsistenteService {
         long preEnBase = Math.max(0, total - nuevosEnBase);
         long preIngresados = Math.max(0, ingresados - nuevosIngresados);
 
-        int aforo = configuracion.leerAforo();
-        boolean sinLimite = aforo <= 0;
+        // Personas que entraron sin registrar su DNI y el administrador sumo a
+        // mano: cuentan solo para el total, no tienen charlas ni diploma.
+        long agregados = configuracion.leerAgregados();
 
         return new AsistenteDto.Estadisticas(
-                total, ingresados, preEnBase, nuevosEnBase, preIngresados, nuevosIngresados,
+                total, ingresados, agregados, ingresados + agregados,
+                preEnBase, nuevosEnBase, preIngresados, nuevosIngresados,
                 porcentaje(ingresados, total),
                 porcentaje(preIngresados, ingresados),
-                porcentaje(nuevosIngresados, ingresados),
-                aforo,
-                sinLimite ? 0 : porcentaje(ingresados, aforo),
-                sinLimite);
+                porcentaje(nuevosIngresados, ingresados));
     }
 
     private int porcentaje(long parte, long total) {

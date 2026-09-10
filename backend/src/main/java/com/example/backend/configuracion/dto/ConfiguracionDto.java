@@ -11,20 +11,34 @@ public final class ConfiguracionDto {
     private ConfiguracionDto() {
     }
 
-    /** Aforo maximo del evento. 0 = sin limite. */
-    public record AforoRequest(
-            @NotNull(message = "Indique el aforo del evento")
-            @Min(value = 0, message = "El aforo no puede ser negativo") Integer aforo
+    /**
+     * Personas a sumar (o restar, con un numero negativo) al contador de
+     * asistentes al evento.
+     */
+    public record AgregarAlContadorRequest(
+            @NotNull(message = "Indique cuantas personas agregar") Integer cantidad
     ) {
     }
 
-    /** Aforo del evento con su ocupacion actual. */
-    public record AforoRespuesta(
-            int aforo,
-            long registrados,
-            int disponibles,
-            int porcentajeOcupacion,
-            boolean sinLimite
+    /** Total acumulado de personas agregadas a mano al contador. */
+    public record AgregadosRequest(
+            @NotNull(message = "Indique el total de personas agregadas")
+            @Min(value = 0, message = "No puede ser negativo") Integer agregados
+    ) {
+    }
+
+    /**
+     * Contador de asistentes al evento.
+     *
+     * "registradosPorDni" son las personas que pasaron por el registro y tienen
+     * su DNI en la base. "agregadosManualmente" son las que entraron sin
+     * registrarse y el administrador suma a mano: solo cuentan para este total,
+     * no aparecen en charlas, diplomas ni reportes.
+     */
+    public record ContadorRespuesta(
+            long registradosPorDni,
+            long agregadosManualmente,
+            long total
     ) {
     }
 

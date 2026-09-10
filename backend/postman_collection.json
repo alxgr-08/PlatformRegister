@@ -739,25 +739,63 @@
       "name": "Configuracion",
       "item": [
         {
-          "name": "Aforo del evento",
+          "name": "Contador de asistentes",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/configuracion/aforo",
+              "raw": "{{baseUrl}}/api/configuracion/contador",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "configuracion",
-                "aforo"
+                "contador"
               ]
-            }
+            },
+            "description": "Registrados por DNI + agregados a mano."
           }
         },
         {
-          "name": "Cambiar aforo del evento (ADMIN)",
+          "name": "Agregar personas al contador (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/configuracion/contador",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "configuracion",
+                "contador"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Suma gente que entro sin registrarse. Negativo para restar. Es solo un contador: no crea asistentes ni afecta charlas ni diplomas."
+          }
+        },
+        {
+          "name": "Fijar personas agregadas (ADMIN)",
           "request": {
             "method": "PUT",
             "header": [
@@ -771,26 +809,26 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/configuracion/aforo",
+              "raw": "{{baseUrl}}/api/configuracion/contador",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "configuracion",
-                "aforo"
+                "contador"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"aforo\": 5000\n}",
+              "raw": "{\n  \"agregados\": 0\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "description": "0 = sin limite."
+            "description": "Fija el acumulado; con 0 se deja solo lo registrado por DNI."
           }
         },
         {
