@@ -3,6 +3,7 @@ package com.example.backend.configuracion;
 import com.example.backend.configuracion.dto.ConfiguracionDto;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,16 +23,28 @@ public class ConfiguracionController {
         this.service = service;
     }
 
-    /** Aforo del evento con su ocupacion actual. */
-    @GetMapping("/aforo")
-    public ConfiguracionDto.AforoRespuesta aforo() {
-        return service.aforoEvento();
+    /** Contador de asistentes: registrados por DNI + agregados a mano. */
+    @GetMapping("/contador")
+    public ConfiguracionDto.ContadorRespuesta contador() {
+        return service.contador();
     }
 
-    /** Cambia el aforo del evento (0 = sin limite). Requiere X-Admin-Key. */
-    @PutMapping("/aforo")
-    public ConfiguracionDto.AforoRespuesta guardarAforo(@Valid @RequestBody ConfiguracionDto.AforoRequest req) {
-        return service.guardarAforoEvento(req.aforo());
+    /**
+     * Suma personas al contador del evento (negativo para restar).
+     * Es solo un contador: no crea asistentes ni afecta charlas ni diplomas.
+     * Requiere X-Admin-Key.
+     */
+    @PostMapping("/contador")
+    public ConfiguracionDto.ContadorRespuesta agregarAlContador(
+            @Valid @RequestBody ConfiguracionDto.AgregarAlContadorRequest req) {
+        return service.agregarAlContador(req.cantidad());
+    }
+
+    /** Fija el total de personas agregadas a mano. Requiere X-Admin-Key. */
+    @PutMapping("/contador")
+    public ConfiguracionDto.ContadorRespuesta fijarAgregados(
+            @Valid @RequestBody ConfiguracionDto.AgregadosRequest req) {
+        return service.fijarAgregados(req.agregados());
     }
 
     /** Calibracion de impresion del diploma (posicion y tamano de cada texto). */

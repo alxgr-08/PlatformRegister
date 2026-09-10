@@ -74,6 +74,8 @@ public final class AsistenteDto {
      */
     public record Estadisticas(
             long totalAsistentes,
+            long registradosPorDni,
+            long agregadosManualmente,
             long totalIngresadosAlEvento,
             long preRegistradosEnBase,
             long nuevosEnBase,
@@ -81,10 +83,7 @@ public final class AsistenteDto {
             long nuevosIngresados,
             int porcentajeIngresados,
             int porcentajePreRegistrados,
-            int porcentajeNuevos,
-            int aforoEvento,
-            int porcentajeAforo,
-            boolean aforoSinLimite
+            int porcentajeNuevos
     ) {
     }
 }

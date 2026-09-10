@@ -275,9 +275,10 @@ export default function Salas() {
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
           <Lightbulb className="h-5 w-5 shrink-0 text-amber-600" />
           <p className="text-sm text-amber-800">
-            <span className="font-semibold">Consejo:</span> marca las charlas con "Agregar" y
-            presiona "Guardar". La pantalla no se reinicia: puedes usar "Cambiar de sala" y
-            seguir agregando charlas a la misma persona. Cuando termines, presiona "Siguiente".
+            <span className="font-semibold">Consejo:</span> en cada charla presiona "Agregar" y
+            luego su "Guardar", ahi mismo. La pantalla no se reinicia: puedes usar "Cambiar de
+            sala" y seguir agregando charlas a la misma persona. Cuando termines, presiona
+            "Siguiente".
           </p>
         </div>
       </div>

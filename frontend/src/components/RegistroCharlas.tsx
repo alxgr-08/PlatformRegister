@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Check, ChevronDown, Eye, EyeOff, Plus, Save, UserMinus } from 'lucide-react'
+import { Check, ChevronDown, Eye, EyeOff, Plus, Save, X } from 'lucide-react'
 import { api, type Asistente, type Charla, type NivelOcupacion } from '../api'
 import { formatoHora } from '../lib/formato'
 import { useToast } from './Toast'
@@ -24,20 +24,19 @@ interface Props {
 }
 
 /**
- * Registro de un asistente en las charlas de la sala actual. Flujo:
- *  1. Se marcan las charlas con "Agregar" (seleccion local, no toca el servidor).
- *  2. "Guardar" confirma todas las seleccionadas de una sola vez.
+ * Registro de un asistente en las charlas de la sala actual.
  *
- * Al guardar la pantalla NO se reinicia: la persona sigue cargada para poder
- * cambiar de sala y seguir agregandole charlas.
+ * Cada charla se guarda por separado, con su propio boton "Guardar" al lado:
+ * asi no hay que bajar hasta el final de la lista en el celular ni se pierde
+ * lo marcado. Al guardar, la pantalla NO se reinicia: la persona sigue
+ * cargada para poder cambiar de sala y seguir agregandole charlas.
  */
 export default function RegistroCharlas({ persona, salaId, salaNombre }: Props) {
   const { notificar } = useToast()
   const [charlas, setCharlas] = useState<Charla[]>([])
   const [inscripciones, setInscripciones] = useState<Set<number>>(new Set())
-  const [seleccionadas, setSeleccionadas] = useState<Set<number>>(new Set())
+  const [marcadas, setMarcadas] = useState<Set<number>>(new Set())
   const [accionId, setAccionId] = useState<number | null>(null)
-  const [guardando, setGuardando] = useState(false)
   const [ocultosAbierto, setOcultosAbierto] = useState(false)
 
   const cargarCharlas = useCallback(async () => {
@@ -73,20 +72,41 @@ export default function RegistroCharlas({ persona, salaId, salaNombre }: Props) 
   }, [persona])
 
   useEffect(() => {
-    setSeleccionadas(new Set())
+    setMarcadas(new Set())
     cargarInscripciones()
   }, [cargarInscripciones])
 
-  function alternarSeleccion(id: number) {
-    setSeleccionadas((prev) => {
+  function marcar(id: number) {
+    setMarcadas((prev) => new Set(prev).add(id))
+  }
+
+  function desmarcar(id: number) {
+    setMarcadas((prev) => {
       const s = new Set(prev)
-      if (s.has(id)) s.delete(id)
-      else s.add(id)
+      s.delete(id)
       return s
     })
   }
 
-  async function quitar(charla: Charla) {
+  /** Guarda UNA charla al toque, sin tocar el resto de la pantalla. */
+  async function guardar(charla: Charla) {
+    if (!persona) return
+    setAccionId(charla.id)
+    try {
+      await api.registrarEnCharla(charla.id, persona.dni)
+      setInscripciones((prev) => new Set(prev).add(charla.id))
+      desmarcar(charla.id)
+      await cargarCharlas()
+      notificar('exito', `${persona.nombreCompleto} inscrito en "${charla.nombre}".`)
+    } catch (e) {
+      notificar('error', e instanceof Error ? e.message : 'Error al guardar')
+    } finally {
+      setAccionId(null)
+    }
+  }
+
+  /** Deshace una inscripcion ya guardada y libera el cupo. */
+  async function quitarInscripcion(charla: Charla) {
     if (!persona) return
     setAccionId(charla.id)
     try {
@@ -123,33 +143,6 @@ export default function RegistroCharlas({ persona, salaId, salaNombre }: Props) 
     }
   }
 
-  /**
-   * Guarda todas las charlas marcadas. La pantalla se mantiene tal cual para
-   * poder cambiar de sala y seguir agregando charlas a la misma persona.
-   */
-  async function guardar() {
-    if (!persona || seleccionadas.size === 0) return
-    setGuardando(true)
-    try {
-      const r = await api.registrarEnVariasCharlas(persona.dni, [...seleccionadas])
-      if (r.registradas > 0) {
-        notificar(
-          'exito',
-          `${persona.nombreCompleto}: ${r.registradas} charla(s) guardada(s). Puedes cambiar de sala y seguir agregando.`,
-        )
-      }
-      if (r.errores.length > 0) {
-        notificar('error', r.errores.join(' | '))
-      }
-      setSeleccionadas(new Set())
-      await Promise.all([cargarCharlas(), cargarInscripciones()])
-    } catch (e) {
-      notificar('error', e instanceof Error ? e.message : 'Error al guardar')
-    } finally {
-      setGuardando(false)
-    }
-  }
-
   const estaLlena = (c: Charla) => c.registrados >= c.aforo
   // Solo se ocultan las charlas que se marcaron manualmente (oculta=true).
   // El hecho de que el horario haya terminado NO las archiva automaticamente.
@@ -160,6 +153,11 @@ export default function RegistroCharlas({ persona, salaId, salaNombre }: Props) 
     <section className="rounded-xl border border-slate-200 bg-white">
       <div className="border-b border-slate-200 px-4 py-3 sm:px-5 sm:py-4">
         <h2 className="font-semibold text-blue-700">2. Charlas de {salaNombre}</h2>
+        {persona && (
+          <p className="mt-0.5 text-sm text-slate-500">
+            Cada charla se guarda por separado con su botón "Guardar".
+          </p>
+        )}
       </div>
 
       {!persona && (
@@ -180,32 +178,17 @@ export default function RegistroCharlas({ persona, salaId, salaNombre }: Props) 
             charla={c}
             habilitado={!!persona}
             yaInscrito={inscripciones.has(c.id)}
-            seleccionada={seleccionadas.has(c.id)}
+            marcada={marcadas.has(c.id)}
             llena={estaLlena(c)}
             cargando={accionId === c.id}
-            onSeleccionar={() => alternarSeleccion(c.id)}
-            onQuitar={() => quitar(c)}
+            onAgregar={() => marcar(c.id)}
+            onQuitarMarca={() => desmarcar(c.id)}
+            onGuardar={() => guardar(c)}
+            onQuitarInscripcion={() => quitarInscripcion(c)}
             onOcultar={() => cambiarVisibilidad(c, true)}
           />
         ))}
       </div>
-
-      {persona && (
-        <div className="sticky bottom-0 border-t border-slate-200 bg-white p-3 sm:p-4">
-          <button
-            onClick={guardar}
-            disabled={seleccionadas.size === 0 || guardando}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-5 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-          >
-            <Save className="h-4 w-4" />
-            {guardando
-              ? 'Guardando...'
-              : seleccionadas.size === 0
-                ? 'Marca charlas con "Agregar" y presiona Guardar'
-                : `Guardar ${seleccionadas.size} charla(s)`}
-          </button>
-        </div>
-      )}
 
       {ocultas.length > 0 && (
         <div className="border-t border-slate-200">
@@ -244,21 +227,25 @@ function TarjetaCharla({
   charla,
   habilitado,
   yaInscrito,
-  seleccionada,
+  marcada,
   llena,
   cargando,
-  onSeleccionar,
-  onQuitar,
+  onAgregar,
+  onQuitarMarca,
+  onGuardar,
+  onQuitarInscripcion,
   onOcultar,
 }: {
   charla: Charla
   habilitado: boolean
   yaInscrito: boolean
-  seleccionada: boolean
+  marcada: boolean
   llena: boolean
   cargando: boolean
-  onSeleccionar: () => void
-  onQuitar: () => void
+  onAgregar: () => void
+  onQuitarMarca: () => void
+  onGuardar: () => void
+  onQuitarInscripcion: () => void
   onOcultar: () => void
 }) {
   const pct = Math.min(charla.porcentajeOcupacion, 100)
@@ -266,7 +253,7 @@ function TarjetaCharla({
   return (
     <div
       className={`flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-4 ${
-        seleccionada ? 'border-green-400 bg-green-50' : 'border-slate-200'
+        marcada ? 'border-green-400 bg-green-50' : 'border-slate-200'
       }`}
     >
       <div className="shrink-0 sm:w-24">
@@ -290,10 +277,10 @@ function TarjetaCharla({
         </div>
       </div>
 
-      <div className="shrink-0 sm:w-44">
+      <div className="shrink-0 sm:w-40">
         <div className="text-sm text-slate-600">
           <span className="font-bold text-slate-800">{charla.registrados}</span>
-          <span className="text-slate-400"> / {charla.aforo}</span>
+          <span className="text-slate-400"> / {charla.aforo} inscritos</span>
           <span className={`ml-1 text-xs font-semibold ${colorTexto[charla.nivelOcupacion]}`}>
             {charla.porcentajeOcupacion}%
           </span>
@@ -309,16 +296,37 @@ function TarjetaCharla({
       <div className="shrink-0">
         {yaInscrito ? (
           <div className="flex items-center gap-2">
-            <span className="rounded-lg bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
+            <span className="flex items-center gap-1 rounded-lg bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
+              <Check className="h-3.5 w-3.5" />
               Registrado
             </span>
             <button
-              onClick={onQuitar}
+              onClick={onQuitarInscripcion}
               disabled={cargando}
               className="flex items-center gap-1 rounded-lg border border-red-300 px-2.5 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
             >
-              <UserMinus className="h-4 w-4" />
+              <X className="h-4 w-4" />
               {cargando ? '...' : 'Quitar'}
+            </button>
+          </div>
+        ) : marcada ? (
+          // Marcada pero sin guardar: se guarda aqui mismo, no al final de la lista.
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onQuitarMarca}
+              disabled={cargando}
+              className="flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+            >
+              <X className="h-4 w-4" />
+              Quitar
+            </button>
+            <button
+              onClick={onGuardar}
+              disabled={cargando}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:opacity-60 sm:flex-none"
+            >
+              <Save className="h-4 w-4" />
+              {cargando ? 'Guardando...' : 'GUARDAR'}
             </button>
           </div>
         ) : llena ? (
@@ -335,20 +343,12 @@ function TarjetaCharla({
               {cargando ? '...' : 'Ocultar'}
             </button>
           </div>
-        ) : seleccionada ? (
-          <button
-            onClick={onSeleccionar}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 sm:w-auto"
-          >
-            <Check className="h-4 w-4" />
-            Agregada
-          </button>
         ) : (
           <button
-            onClick={onSeleccionar}
+            onClick={onAgregar}
             disabled={!habilitado}
             title={!habilitado ? 'Busca primero un asistente' : ''}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-green-400 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-transparent sm:w-auto"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-green-400 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-transparent sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             Agregar

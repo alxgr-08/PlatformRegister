@@ -137,6 +137,14 @@ public class CharlaService {
             throw new ApiException(HttpStatus.CONFLICT,
                     "El DNI " + asistente.getDni() + " ya esta registrado en esta charla.");
         }
+        // Nadie puede estar en dos charlas a la vez, aunque sean de salas distintas.
+        Charla cruzada = charlaQueSeCruza(asistente.getId(), charla);
+        if (cruzada != null) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "El DNI " + asistente.getDni() + " ya esta inscrito en \""
+                            + cruzada.getNombre() + "\" (" + cruzada.getSala()
+                            + "), que es a la misma hora. No puede estar en dos charlas a la vez.");
+        }
 
         int actualizadas = charlaRepo.incrementarRegistrados(charlaId);
         if (actualizadas == 0) {
@@ -222,6 +230,29 @@ public class CharlaService {
     }
 
     // ---------------------------------------------------------------- helpers
+
+    /**
+     * Devuelve la charla en la que el asistente ya esta inscrito y que se
+     * cruza en horario con la que se quiere registrar, o null si no hay cruce.
+     */
+    private Charla charlaQueSeCruza(Long asistenteId, Charla nueva) {
+        List<Long> ids = registroRepo.findByAsistenteIdOrderByRegistradoEnAsc(asistenteId).stream()
+                .map(RegistroCharla::getCharlaId)
+                .toList();
+        if (ids.isEmpty()) {
+            return null;
+        }
+        return charlaRepo.findAllById(ids).stream()
+                .filter(otra -> seCruzan(nueva, otra))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /** Dos charlas se cruzan si sus horarios se pisan aunque sea un minuto. */
+    private boolean seCruzan(Charla a, Charla b) {
+        return a.getHoraInicio().isBefore(b.getHoraFin())
+                && b.getHoraInicio().isBefore(a.getHoraFin());
+    }
 
     private Charla buscarEntidad(Long id) {
         return charlaRepo.findById(id)

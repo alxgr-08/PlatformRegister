@@ -1,4 +1,4 @@
-import { DoorOpen, Presentation, Users } from 'lucide-react'
+import { ArrowRight, DoorOpen, Presentation, Users } from 'lucide-react'
 import type { Sala } from '../api'
 
 interface Props {
@@ -55,6 +55,10 @@ export default function SelectorSala({ salas, cargando, onElegir }: Props) {
                   {s.registradosTotal} / {s.aforoTotal}
                 </span>
               </div>
+              <span className="flex items-center gap-1 text-sm font-semibold text-blue-600">
+                Ingresar
+                <ArrowRight className="h-4 w-4" />
+              </span>
             </button>
           ))}
         </div>

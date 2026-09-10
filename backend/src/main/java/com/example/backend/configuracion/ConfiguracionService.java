@@ -17,7 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ConfiguracionService {
 
-    static final String CLAVE_AFORO = "evento.aforo";
+    /** Clave nueva: parte de 0 y no hereda el valor del aforo anterior. */
+    static final String CLAVE_AGREGADOS = "evento.agregadosManualmente";
     static final String CLAVE_CALIBRACION = "diploma.calibracion";
 
     private final ConfiguracionRepository repo;
@@ -32,52 +33,55 @@ public class ConfiguracionService {
         this.mapper = mapper;
     }
 
-    // ------------------------------------------------------- Aforo del evento
+    // ---------------------------------------------- Contador de asistentes
 
     @Transactional(readOnly = true)
-    public ConfiguracionDto.AforoRespuesta aforoEvento() {
-        return construirAforo(leerAforo());
+    public ConfiguracionDto.ContadorRespuesta contador() {
+        return construirContador(leerAgregados());
     }
 
     /**
-     * Guarda el aforo del evento. Es el TOTAL de personas que pueden ingresar,
-     * no una cantidad a sumar, por eso no puede quedar por debajo de la gente
-     * que ya entro. Con 0 queda sin limite.
+     * Suma personas al contador del evento (o resta, con un numero negativo).
+     *
+     * Sirve para la gente que entro sin pasar por el registro: solo mueve este
+     * contador, no crea asistentes ni aparece en charlas, diplomas o reportes.
+     * El evento no tiene tope: esto no limita nada, solo cuenta.
      */
     @Transactional
-    public ConfiguracionDto.AforoRespuesta guardarAforoEvento(int aforo) {
-        long ingresados = asistenteRepo.countByFechaIngresoEventoIsNotNull();
-        if (aforo > 0 && aforo < ingresados) {
+    public ConfiguracionDto.ContadorRespuesta agregarAlContador(int cantidad) {
+        long total = leerAgregados() + cantidad;
+        if (total < 0) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    "Ya ingresaron " + ingresados + " personas al evento: el aforo no puede ser menor. "
-                            + "Escribe el total maximo (por ejemplo " + (ingresados + 10)
-                            + "), no la cantidad que quieres sumar. Con 0 queda sin limite.");
+                    "No se puede restar mas de lo agregado a mano (hay " + leerAgregados() + ").");
         }
-        guardar(CLAVE_AFORO, String.valueOf(aforo));
-        return construirAforo(aforo);
+        return fijarAgregados(total);
     }
 
-    /** Aforo configurado del evento. 0 significa "sin limite". */
+    /** Fija el total de personas agregadas a mano (se usa para ponerlo en cero). */
+    @Transactional
+    public ConfiguracionDto.ContadorRespuesta fijarAgregados(long agregados) {
+        guardar(CLAVE_AGREGADOS, String.valueOf(Math.max(0, agregados)));
+        return construirContador(Math.max(0, agregados));
+    }
+
+    /** Personas sumadas a mano al contador. */
     @Transactional(readOnly = true)
-    public int leerAforo() {
-        return repo.findById(CLAVE_AFORO)
+    public long leerAgregados() {
+        return repo.findById(CLAVE_AGREGADOS)
                 .map(Configuracion::getValor)
                 .map(v -> {
                     try {
-                        return Integer.parseInt(v.trim());
+                        return Long.parseLong(v.trim());
                     } catch (NumberFormatException e) {
-                        return 0;
+                        return 0L;
                     }
                 })
-                .orElse(0);
+                .orElse(0L);
     }
 
-    private ConfiguracionDto.AforoRespuesta construirAforo(int aforo) {
+    private ConfiguracionDto.ContadorRespuesta construirContador(long agregados) {
         long registrados = asistenteRepo.countByFechaIngresoEventoIsNotNull();
-        boolean sinLimite = aforo <= 0;
-        int disponibles = sinLimite ? 0 : (int) Math.max(0, aforo - registrados);
-        int porcentaje = sinLimite ? 0 : (int) Math.round(registrados * 100.0 / aforo);
-        return new ConfiguracionDto.AforoRespuesta(aforo, registrados, disponibles, porcentaje, sinLimite);
+        return new ConfiguracionDto.ContadorRespuesta(registrados, agregados, registrados + agregados);
     }
 
     // -------------------------------------------------- Calibracion del diploma
