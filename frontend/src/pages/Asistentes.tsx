@@ -149,16 +149,7 @@ export default function Asistentes() {
         subtitulo="Registro general al evento"
       />
       <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <TarjetaStat
-            etiqueta="ASISTENTES EN BASE"
-            valor={stats?.totalAsistentes}
-            detalle={
-              stats
-                ? `${stats.preRegistradosEnBase.toLocaleString('es-PE')} pre-registrados · ${stats.nuevosEnBase.toLocaleString('es-PE')} nuevos`
-                : undefined
-            }
-          />
+        <div className="grid gap-4 sm:grid-cols-3">
           <TarjetaStat
             etiqueta="REGISTRADOS AL EVENTO"
             valor={stats?.totalIngresadosAlEvento}
@@ -366,7 +357,10 @@ function AforoEventoPanel({
   const [valor, setValor] = useState('0')
   const [guardando, setGuardando] = useState(false)
 
-  if (!stats) return null
+  // Solo el administrador ve el aforo: el personal de puerta no debe tocarlo.
+  if (!stats || !esAdmin) return null
+
+  const ingresados = stats.totalIngresadosAlEvento
 
   function abrir() {
     setValor(String(stats?.aforoEvento ?? 0))
@@ -377,6 +371,15 @@ function AforoEventoPanel({
     const aforo = Number(valor)
     if (!Number.isFinite(aforo) || aforo < 0) {
       notificar('info', 'El aforo debe ser un numero de 0 o mas (0 = sin limite).')
+      return
+    }
+    // Es el TOTAL maximo, no una cantidad a sumar: por eso no puede quedar por
+    // debajo de la gente que ya entro.
+    if (aforo > 0 && aforo < ingresados) {
+      notificar(
+        'info',
+        `Ya ingresaron ${ingresados.toLocaleString('es-PE')} personas. Escribe el total maximo (por ejemplo ${(ingresados + 10).toLocaleString('es-PE')}), no la cantidad que quieres sumar.`,
+      )
       return
     }
     setGuardando(true)
@@ -404,54 +407,34 @@ function AforoEventoPanel({
     <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold tracking-wide text-slate-500">AFORO DEL EVENTO</p>
+          <p className="text-xs font-semibold tracking-wide text-slate-500">
+            AFORO DEL EVENTO <span className="font-normal text-slate-400">· solo administrador</span>
+          </p>
           {stats.aforoSinLimite ? (
-            <p className="mt-1 text-lg font-semibold text-slate-700">Sin límite</p>
+            <p className="mt-1 text-lg font-semibold text-slate-700">
+              Sin límite
+              <span className="ml-2 text-sm font-normal text-slate-500">
+                ({ingresados.toLocaleString('es-PE')} ingresados)
+              </span>
+            </p>
           ) : (
             <p className="mt-1 text-lg font-semibold text-slate-800">
-              {stats.totalIngresadosAlEvento.toLocaleString('es-PE')} de{' '}
-              {stats.aforoEvento.toLocaleString('es-PE')}
+              {ingresados.toLocaleString('es-PE')} de {stats.aforoEvento.toLocaleString('es-PE')}
               <span className="ml-2 text-sm font-normal text-slate-500">
                 ({stats.porcentajeAforo}%)
               </span>
             </p>
           )}
         </div>
-        {esAdmin &&
-          (editando ? (
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={0}
-                autoFocus
-                className="w-28 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                value={valor}
-                onChange={(e) => setValor(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && guardar()}
-              />
-              <button
-                onClick={guardar}
-                disabled={guardando}
-                className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-              >
-                {guardando ? '...' : 'Guardar'}
-              </button>
-              <button
-                onClick={() => setEditando(false)}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
-              >
-                Cancelar
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={abrir}
-              className="flex items-center gap-2 rounded-lg border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-            >
-              <Pencil className="h-4 w-4" />
-              Cambiar aforo
-            </button>
-          ))}
+        {!editando && (
+          <button
+            onClick={abrir}
+            className="flex items-center gap-2 rounded-lg border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+          >
+            <Pencil className="h-4 w-4" />
+            Cambiar aforo
+          </button>
+        )}
       </div>
 
       {!stats.aforoSinLimite && (
@@ -459,9 +442,46 @@ function AforoEventoPanel({
           <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
         </div>
       )}
-      {esAdmin && (
+
+      {editando ? (
+        <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50/60 p-3">
+          <label className="mb-1 block text-sm font-medium text-slate-700">
+            Aforo máximo del evento
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="number"
+              min={0}
+              autoFocus
+              className="w-32 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              value={valor}
+              onChange={(e) => setValor(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && guardar()}
+            />
+            <button
+              onClick={guardar}
+              disabled={guardando}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+            >
+              {guardando ? 'Guardando...' : 'Guardar'}
+            </button>
+            <button
+              onClick={() => setEditando(false)}
+              className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200"
+            >
+              Cancelar
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-slate-600">
+            Es el <b>total de personas</b> que pueden ingresar, no la cantidad que quieres sumar.
+            Ya ingresaron <b>{ingresados.toLocaleString('es-PE')}</b>: para dejar entrar 10 más,
+            escribe <b>{(ingresados + 10).toLocaleString('es-PE')}</b>. Con <b>0</b> queda sin
+            límite.
+          </p>
+        </div>
+      ) : (
         <p className="mt-2 text-xs text-slate-400">
-          0 = sin límite. Si el evento se llena, súbelo aquí para seguir registrando.
+          Tope de personas que pueden ingresar al evento. Con 0 queda sin límite.
         </p>
       )}
     </section>

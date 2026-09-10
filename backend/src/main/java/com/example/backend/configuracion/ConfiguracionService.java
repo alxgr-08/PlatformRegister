@@ -39,8 +39,20 @@ public class ConfiguracionService {
         return construirAforo(leerAforo());
     }
 
+    /**
+     * Guarda el aforo del evento. Es el TOTAL de personas que pueden ingresar,
+     * no una cantidad a sumar, por eso no puede quedar por debajo de la gente
+     * que ya entro. Con 0 queda sin limite.
+     */
     @Transactional
     public ConfiguracionDto.AforoRespuesta guardarAforoEvento(int aforo) {
+        long ingresados = asistenteRepo.countByFechaIngresoEventoIsNotNull();
+        if (aforo > 0 && aforo < ingresados) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Ya ingresaron " + ingresados + " personas al evento: el aforo no puede ser menor. "
+                            + "Escribe el total maximo (por ejemplo " + (ingresados + 10)
+                            + "), no la cantidad que quieres sumar. Con 0 queda sin limite.");
+        }
         guardar(CLAVE_AFORO, String.valueOf(aforo));
         return construirAforo(aforo);
     }
