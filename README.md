@@ -20,9 +20,16 @@ Plataforma de registro de asistentes, salas, charlas y diplomas para el evento.
 
 Entra con **"Ingresar como Admin"** en la barra superior y ve a **Configuración**:
 
-1. Crea las salas que necesites: 1, 2, 6, 8 o las que sean.
-2. Dentro de cada sala, agrega sus charlas con **marca**, **capacitador**,
-   fecha, horario y aforo. La marca y el capacitador salen impresos en el diploma.
+1. En la columna de la izquierda, **"Agregar sala"**: crea las que necesites,
+   1, 2, 6, 8 o las que sean. Ahí quedan todas listadas.
+2. **Toca una sala** y a la derecha aparece su detalle: puedes renombrarla,
+   ocultarla o eliminarla, y ver sus charlas.
+3. Con **"Agregar charla"** (o **"Editar"** en una existente) se abre el
+   formulario: nombre de la charla, **marca**, **capacitador**, **fecha**,
+   hora de inicio, hora de fin y aforo. La marca y el capacitador salen
+   impresos en el diploma.
+4. Cada charla se puede **ocultar** sin borrarla, para sacarla de la pantalla
+   de la sala sin perder sus inscritos.
 
 El evento **no tiene tope de personas**. En **Asistentes**, solo el administrador
 ve el **contador de asistentes** y puede sumar a mano a la gente que entró sin
@@ -33,9 +40,10 @@ sale diploma.
 ### 3. Cada dispositivo elige su sala
 
 En **Salas / Charlas**, cada celular o tablet ve la pregunta
-**"¿En qué sala estás?"** y elige con una tarjeta. No hay usuarios ni contraseña
-por sala. La elección queda guardada en ese dispositivo aunque se recargue la
-página, y se cambia con **"Cambiar de sala"**.
+**"¿En qué sala estás?"** y elige con una tarjeta: 2 por fila en celular y
+hasta 4 en pantalla grande, pasando a la siguiente fila si no caben. No hay
+usuarios ni contraseña por sala. La elección queda guardada en ese dispositivo
+aunque se recargue la página, y se cambia con **"Cambiar de sala"**.
 
 Flujo de registro en la sala:
 

@@ -4,12 +4,12 @@ import {
   AlertTriangle,
   CheckCircle2,
   Info,
-  Lightbulb,
   Pencil,
   Presentation,
   Repeat,
   Search,
   Settings,
+  User,
   X,
 } from 'lucide-react'
 import { api, type Asistente, type Sala } from '../api'
@@ -24,9 +24,6 @@ import {
   leerSalaSeleccionada,
   olvidarSalaSeleccionada,
 } from '../lib/sala'
-
-const inputCls =
-  'w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
 
 interface MensajePersona {
   tipo: 'error' | 'warn'
@@ -136,31 +133,32 @@ export default function Salas() {
     dniRef.current?.focus()
   }
 
+  const botonConfigurar = esAdmin ? (
+    <Link
+      to="/configuracion"
+      className="flex items-center gap-2 rounded-lg border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+    >
+      <Settings className="h-4 w-4" />
+      <span className="hidden sm:inline">Editar salas y aforos</span>
+      <span className="sm:hidden">Configurar</span>
+    </Link>
+  ) : undefined
+
   // ------------------------------------------------- Todavia no eligio sala
   if (salaId == null) {
     return (
       <>
         <PageHeader
           icono={<Presentation className="h-6 w-6" />}
-          titulo="Salas"
-          subtitulo="Elige la sala de este dispositivo"
-          accion={
-            esAdmin ? (
-              <Link
-                to="/configuracion"
-                className="flex items-center gap-2 rounded-lg border border-blue-300 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-              >
-                <Settings className="h-4 w-4" />
-                Configurar salas
-              </Link>
-            ) : undefined
-          }
+          titulo="Salas / Charlas"
+          subtitulo="Selecciona tu sala para registrar asistentes"
+          accion={botonConfigurar}
         />
         {persona && (
-          <div className="mx-auto max-w-4xl px-4 pt-4 sm:px-6">
+          <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6">
             <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
               Sigues atendiendo a <b>{persona.nombreCompleto}</b>. Elige la otra sala para
-              agregarle mas charlas.
+              agregarle más charlas.
             </p>
           </div>
         )}
@@ -174,47 +172,52 @@ export default function Salas() {
     <>
       <PageHeader
         icono={<Presentation className="h-6 w-6" />}
-        titulo={salaActual?.nombre ?? 'Sala'}
+        titulo="Salas / Charlas"
         subtitulo="Registra asistentes en las charlas de esta sala"
-        accion={
-          <div className="flex items-center gap-2">
-            {esAdmin && (
-              <Link
-                to="/configuracion"
-                className="flex items-center gap-2 rounded-lg border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-              >
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Configurar</span>
-              </Link>
-            )}
-            <button
-              onClick={cambiarDeSala}
-              className="flex items-center gap-2 rounded-lg bg-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-300"
-            >
-              <Repeat className="h-4 w-4" />
-              Cambiar de sala
-            </button>
-          </div>
-        }
+        accion={botonConfigurar}
       />
 
-      <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
+      <div className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
+        {/* Sala elegida en este dispositivo */}
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-blue-50 p-2.5 text-blue-600">
+              <Presentation className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-800">{salaActual?.nombre ?? 'Sala'}</h2>
+              <p className="text-xs text-slate-500">Este dispositivo recordará tu sala.</p>
+            </div>
+          </div>
+          <button
+            onClick={cambiarDeSala}
+            className="flex items-center gap-2 rounded-lg border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+          >
+            <Repeat className="h-4 w-4" />
+            Cambiar de sala
+          </button>
+        </section>
+
+        {/* Buscar asistente */}
         <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-          <h2 className="mb-3 font-semibold text-blue-700">1. Ingresar DNI del asistente</h2>
+          <h2 className="mb-3 font-semibold text-slate-800">Buscar asistente</h2>
           <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-            <input
-              ref={dniRef}
-              className={inputCls}
-              placeholder="Ingrese DNI"
-              inputMode="numeric"
-              value={dni}
-              onChange={(e) => setDni(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && buscar()}
-            />
+            <div className="relative flex-1">
+              <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                ref={dniRef}
+                className="w-full rounded-lg border border-slate-300 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                placeholder="Ingresa DNI"
+                inputMode="numeric"
+                value={dni}
+                onChange={(e) => setDni(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && buscar()}
+              />
+            </div>
             <button
               onClick={buscar}
               disabled={buscando}
-              className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
               <Search className="h-4 w-4" />
               {buscando ? 'Buscando...' : 'Buscar'}
@@ -223,7 +226,7 @@ export default function Salas() {
 
           <p className="mt-3 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
             <Info className="h-4 w-4 shrink-0" />
-            Solo se puede inscribir a personas ya registradas al evento.
+            Solo asistentes registrados al evento.
           </p>
 
           {persona && (
@@ -282,16 +285,6 @@ export default function Salas() {
           salaNombre={salaActual?.nombre ?? 'esta sala'}
           onGuardado={prepararSiguienteDni}
         />
-
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <Lightbulb className="h-5 w-5 shrink-0 text-amber-600" />
-          <p className="text-sm text-amber-800">
-            <span className="font-semibold">Consejo:</span> en cada charla presiona "Agregar" y
-            luego su "Guardar", ahi mismo. La pantalla no se reinicia: puedes usar "Cambiar de
-            sala" y seguir agregando charlas a la misma persona. Cuando termines, presiona
-            "Siguiente".
-          </p>
-        </div>
       </div>
 
       {editandoPersona && persona && (
