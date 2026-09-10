@@ -2,6 +2,7 @@ package com.example.backend.asistente;
 
 import com.example.backend.asistente.dto.AsistenteDto;
 import com.example.backend.common.ApiException;
+import com.example.backend.configuracion.ConfiguracionService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -17,10 +18,15 @@ import java.time.LocalDateTime;
 @Service
 public class AsistenteService {
 
-    private final AsistenteRepository repo;
+    /** Etiqueta de quien se crea en puerta; el resto cuenta como pre-registrado. */
+    static final String TIPO_NUEVO = "NUEVO REGISTRADO";
 
-    public AsistenteService(AsistenteRepository repo) {
+    private final AsistenteRepository repo;
+    private final ConfiguracionService configuracion;
+
+    public AsistenteService(AsistenteRepository repo, ConfiguracionService configuracion) {
         this.repo = repo;
+        this.configuracion = configuracion;
     }
 
     @Transactional(readOnly = true)
@@ -53,7 +59,7 @@ public class AsistenteService {
         a.setCelular(limpiar(req.celular()));
         a.setCorreo(limpiar(req.correo()));
         a.setEspecialidad(limpiar(req.especialidad()));
-        a.setTipoRegistro("NUEVO REGISTRADO");
+        a.setTipoRegistro(TIPO_NUEVO);
         return aRespuesta(repo.save(a));
     }
 
@@ -79,6 +85,14 @@ public class AsistenteService {
             throw new ApiException(HttpStatus.CONFLICT,
                     "El DNI " + a.getDni() + " ya fue registrado al evento.");
         }
+        // Aforo del evento: 0 significa sin limite. Si se llena, el administrador
+        // puede subirlo desde la pantalla de registro general.
+        int aforo = configuracion.leerAforo();
+        if (aforo > 0 && repo.countByFechaIngresoEventoIsNotNull() >= aforo) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Se alcanzo el aforo del evento (" + aforo
+                            + "). El administrador puede ampliarlo para seguir registrando.");
+        }
         a.setFechaIngresoEvento(LocalDateTime.now());
         return aRespuesta(repo.save(a));
     }
@@ -97,7 +111,32 @@ public class AsistenteService {
 
     @Transactional(readOnly = true)
     public AsistenteDto.Estadisticas estadisticas() {
-        return new AsistenteDto.Estadisticas(repo.count(), repo.countByFechaIngresoEventoIsNotNull());
+        long total = repo.count();
+        long ingresados = repo.countByFechaIngresoEventoIsNotNull();
+
+        // Todo lo que no se creo en puerta se considera pre-registrado, de modo
+        // que el desglose siempre suma el total aunque la base traiga etiquetas
+        // distintas en la columna tipo_registro.
+        long nuevosEnBase = repo.countByTipoRegistro(TIPO_NUEVO);
+        long nuevosIngresados = repo.countByTipoRegistroAndFechaIngresoEventoIsNotNull(TIPO_NUEVO);
+        long preEnBase = Math.max(0, total - nuevosEnBase);
+        long preIngresados = Math.max(0, ingresados - nuevosIngresados);
+
+        int aforo = configuracion.leerAforo();
+        boolean sinLimite = aforo <= 0;
+
+        return new AsistenteDto.Estadisticas(
+                total, ingresados, preEnBase, nuevosEnBase, preIngresados, nuevosIngresados,
+                porcentaje(ingresados, total),
+                porcentaje(preIngresados, ingresados),
+                porcentaje(nuevosIngresados, ingresados),
+                aforo,
+                sinLimite ? 0 : porcentaje(ingresados, aforo),
+                sinLimite);
+    }
+
+    private int porcentaje(long parte, long total) {
+        return total > 0 ? (int) Math.round(parte * 100.0 / total) : 0;
     }
 
     /** Busca la entidad por DNI o lanza 404. Uso interno / otros modulos. */

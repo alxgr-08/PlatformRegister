@@ -9,12 +9,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * Protege los endpoints de administracion (crear/editar/eliminar salas y carga CSV).
- * Exige la cabecera  X-Admin-Key  con la clave configurada en app.admin-key.
+ * Protege los endpoints de administracion. Exige la cabecera X-Admin-Key con
+ * la clave configurada en app.admin-key.
  *
- * Quedan ABIERTOS (no requieren clave):
- *   - cualquier peticion GET
- *   - el registro rapido en charlas  (.../registros)  usado por el personal de salas.
+ * Quedan ABIERTOS (no requieren clave), porque los usa el personal de puerta y
+ * de salas desde el celular sin login:
+ *   - cualquier peticion GET, salvo el modulo de carga;
+ *   - el registro de asistentes en charlas  (.../registros);
+ *   - ocultar / mostrar una charla          (.../visibilidad).
+ *
+ * El modulo de carga (importar y exportar la base) exige clave siempre.
  */
 @Component
 public class AdminKeyInterceptor implements HandlerInterceptor {
@@ -28,20 +32,11 @@ public class AdminKeyInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws Exception {
-        String metodo = request.getMethod();
-        if ("OPTIONS".equalsIgnoreCase(metodo)) {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
         }
-        String path = request.getRequestURI();
-        // El modulo de carga (importar/exportar base de datos) exige clave en TODOS los metodos.
-        boolean esCarga = path.contains("/api/carga/");
-        if (!esCarga) {
-            // Charlas: lecturas (GET), registro rapido y mostrar/ocultar quedan abiertos.
-            if ("GET".equalsIgnoreCase(metodo)
-                    || path.contains("/registros")
-                    || path.contains("/visibilidad")) {
-                return true;
-            }
+        if (esAbierto(request)) {
+            return true;
         }
         String provista = request.getHeader("X-Admin-Key");
         if (adminKey != null && adminKey.equals(provista)) {
@@ -54,5 +49,15 @@ public class AdminKeyInterceptor implements HandlerInterceptor {
                 "{\"status\":401,\"error\":\"Unauthorized\","
                         + "\"mensaje\":\"Falta o es invalida la cabecera X-Admin-Key.\"}");
         return false;
+    }
+
+    private boolean esAbierto(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        if (path.contains("/api/carga/")) {
+            return false;
+        }
+        return "GET".equalsIgnoreCase(request.getMethod())
+                || path.contains("/registros")
+                || path.contains("/visibilidad");
     }
 }

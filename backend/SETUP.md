@@ -1,6 +1,7 @@
-# Backend - Sistema de Registro de Evento y Charlas
+# Backend - Sistema de Registro de Evento, Charlas y Diplomas
 
-API REST con **Spring Boot 4 + PostgreSQL**. Tres modulos: Asistentes, Salas/Charlas y Carga.
+API REST con **Spring Boot 4 + PostgreSQL**. Modulos: Asistentes, Salas, Charlas,
+Diplomas, Reportes, Configuracion y Carga.
 
 ---
 
@@ -22,7 +23,12 @@ Se recomienda Supabase por traer Realtime sin configuracion extra.
 
 1. Crea una cuenta y un proyecto en https://supabase.com
 2. **SQL Editor -> New query** -> pega el contenido de [`schema.sql`](schema.sql) y presiona **Run**.
-   Esto crea las tablas, indices, constraints y unas charlas de ejemplo.
+   Esto crea las tablas, indices y constraints.
+
+   > **Si ya tenias la version anterior funcionando**, ejecuta en su lugar
+   > [`migracion_v2.sql`](migracion_v2.sql): agrega las salas, los campos de marca y
+   > capacitador y el control de diplomas **sin borrar nada**. El backend tambien
+   > hace esta migracion solo al arrancar, asi que ejecutarlo es opcional.
 3. **Project Settings -> Database -> Connection** -> copia los datos del **"Session pooler"**
    (host, puerto `5432`, usuario `postgres.xxxx`, contrasena).
 
@@ -69,13 +75,19 @@ La API queda en `http://localhost:8080`. Las tablas se crean/validan automaticam
 
 ## 4. Seguridad de administracion
 
-Los endpoints de **edicion de salas/aforos** y **carga CSV** exigen la cabecera:
+Exigen la cabecera `X-Admin-Key: <valor de ADMIN_KEY>`:
 
-```
-X-Admin-Key: <valor de ADMIN_KEY>
-```
+- crear / editar / eliminar **salas** y **charlas** (incluye aforos),
+- cambiar el **aforo del evento** y la **calibracion del diploma**,
+- **todo** el modulo de carga (importar y exportar la base).
 
-El **registro rapido** en charlas y el registro al evento quedan abiertos (personal de puerta/salas).
+Quedan **abiertos**, porque los usa el personal de puerta y de salas desde el celular
+sin usuario ni contrasena:
+
+- cualquier lectura (GET) fuera del modulo de carga,
+- el registro al evento,
+- la inscripcion de asistentes en charlas y el ocultar / mostrar una charla,
+- el modulo de diplomas (buscar por DNI, imprimir y marcar impresos).
 
 ---
 
@@ -90,25 +102,77 @@ Base URL: `http://localhost:8080`
 | GET    | `/api/asistentes/buscar?dni={dni}` | Busca por DNI -> `{encontrado, asistente}` |
 | GET    | `/api/asistentes/{dni}` | Obtiene un asistente |
 | GET    | `/api/asistentes?pagina=0&tamano=50` | Lista paginada |
-| GET    | `/api/asistentes/estadisticas` | Total y total ingresados al evento |
+| GET    | `/api/asistentes/estadisticas` | Totales, desglose pre-registrados / nuevos con porcentajes y aforo |
 | GET    | `/api/asistentes/{dni}/charlas` | Charlas en las que ya esta inscrito |
 | POST   | `/api/asistentes` | Crea asistente ("NUEVO REGISTRADO") |
+| PUT    | `/api/asistentes/{dni}` | Corrige nombre, celular, correo y especialidad |
 | POST   | `/api/asistentes/{dni}/ingreso` | Registra el ingreso al evento |
 | DELETE | `/api/asistentes/{dni}/ingreso` | Deshace el ingreso al evento |
 
-### Modulo Salas / Charlas
+Si el **aforo del evento** esta configurado (distinto de 0) y ya se alcanzo, el
+registro de ingreso responde 409 y pide ampliarlo desde la pantalla de Asistentes.
+
+### Modulo Salas
 
 | Metodo | Ruta | Descripcion |
 |--------|------|-------------|
-| GET    | `/api/charlas?incluirOcultas=false&incluirFinalizadas=true` | Lista charlas con ocupacion |
+| GET    | `/api/salas?incluirInactivas=false` | Lista las salas configuradas |
+| GET    | `/api/salas/{id}` | Obtiene una sala |
+| POST   | `/api/salas` | Crea una sala - **ADMIN** |
+| PUT    | `/api/salas/{id}` | Edita una sala - **ADMIN** |
+| DELETE | `/api/salas/{id}` | Elimina una sala vacia - **ADMIN** |
+
+### Modulo Charlas
+
+| Metodo | Ruta | Descripcion |
+|--------|------|-------------|
+| GET    | `/api/charlas?salaId=1&incluirOcultas=false&incluirFinalizadas=true` | Lista charlas con ocupacion; con `salaId`, solo las de esa sala |
 | GET    | `/api/charlas/{id}` | Obtiene una charla |
-| POST   | `/api/charlas` | Crea charla — **ADMIN** |
-| PUT    | `/api/charlas/{id}` | Edita charla y aforo — **ADMIN** |
-| DELETE | `/api/charlas/{id}` | Elimina charla — **ADMIN** |
-| PATCH  | `/api/charlas/{id}/visibilidad` | Oculta/muestra charla — **ADMIN** |
-| POST   | `/api/charlas/{id}/registros` | Registro rapido de un DNI |
-| DELETE | `/api/charlas/{id}/registros/{dni}` | Deshace un registro |
+| POST   | `/api/charlas` | Crea charla (sala, marca, capacitador, horario, aforo) - **ADMIN** |
+| PUT    | `/api/charlas/{id}` | Edita charla y aforo - **ADMIN** |
+| DELETE | `/api/charlas/{id}` | Elimina charla - **ADMIN** |
+| PATCH  | `/api/charlas/{id}/visibilidad` | Oculta / muestra charla |
+| POST   | `/api/charlas/{id}/registros` | Inscribe un DNI en la charla |
+| POST   | `/api/charlas/registros` | Inscribe un DNI en varias charlas de una vez |
+| DELETE | `/api/charlas/{id}/registros/{dni}` | Deshace una inscripcion |
 | GET    | `/api/charlas/{id}/registros` | Lista los inscritos de la charla |
+
+Solo se puede inscribir a personas que **ya registraron su ingreso al evento**, y la
+base impide inscribir dos veces el mismo DNI en la misma charla.
+
+### Modulo Configuracion
+
+| Metodo | Ruta | Descripcion |
+|--------|------|-------------|
+| GET    | `/api/configuracion/aforo` | Aforo del evento y su ocupacion |
+| PUT    | `/api/configuracion/aforo` | Cambia el aforo del evento (0 = sin limite) - **ADMIN** |
+| GET    | `/api/configuracion/diploma` | Calibracion de impresion del diploma |
+| PUT    | `/api/configuracion/diploma` | Guarda la calibracion del diploma - **ADMIN** |
+
+La calibracion del diploma se guarda en la base, no en el navegador: se ajusta
+**una sola vez** y vale para todas las hojas y todos los dispositivos.
+
+### Modulo Diplomas
+
+| Metodo | Ruta | Descripcion |
+|--------|------|-------------|
+| GET    | `/api/diplomas/{dni}` | Persona + todas sus charlas con el estado del diploma |
+| GET    | `/api/diplomas/resumen` | Total, pendientes, impresos y reimpresos |
+| POST   | `/api/diplomas/impresion` | Marca como impresos los diplomas indicados |
+| POST   | `/api/diplomas/{registroId}/pendiente` | Devuelve un diploma a pendiente |
+
+Cada inscripcion a una charla equivale a un diploma: si la persona asistio a 3
+charlas, se imprimen 3 hojas. Un diploma que se imprime dos veces queda marcado
+como **reimpreso**.
+
+### Modulo Reportes
+
+| Metodo | Ruta | Descripcion |
+|--------|------|-------------|
+| GET    | `/api/reportes/especialidad` | En la base, ingresaron, faltantes y % por especialidad |
+| GET    | `/api/reportes/especialidad/excel` | Descarga ese reporte en Excel |
+
+Los conteos usan **DNI unicos**: nadie aparece dos veces.
 
 ### Modulo Carga
 

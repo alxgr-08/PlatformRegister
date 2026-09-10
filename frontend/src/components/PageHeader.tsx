@@ -21,7 +21,8 @@ function Reloj() {
   })
 
   return (
-    <div className="flex items-center gap-2 text-sm text-slate-500">
+    // En celular se oculta: la pantalla es angosta y el boton de accion manda.
+    <div className="hidden items-center gap-2 text-sm text-slate-500 sm:flex">
       <Clock className="h-4 w-4" />
       <span className="font-medium text-slate-700">{fecha}</span>
       <span>{hora}</span>

@@ -18,11 +18,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Modulo de Salas / Charlas: gestion de charlas, aforos y registro rapido.
+ * Modulo de Charlas: gestion de charlas, aforos y registro de asistentes.
  *
- * Endpoints de administracion (POST/PUT/DELETE/PATCH de la charla en si)
- * requieren la cabecera  X-Admin-Key.  El registro rapido (.../registros)
- * queda abierto para el personal de salas.
+ * Endpoints de administracion (POST/PUT/DELETE de la charla en si) requieren
+ * la cabecera X-Admin-Key. El registro de asistentes (.../registros) queda
+ * abierto para el personal de salas, que trabaja desde el celular sin login.
  */
 @RestController
 @RequestMapping("/api/charlas")
@@ -34,12 +34,13 @@ public class CharlaController {
         this.service = service;
     }
 
-    /** Lista las charlas con su estado de ocupacion. */
+    /** Lista las charlas con su estado de ocupacion. Con salaId, solo las de esa sala. */
     @GetMapping
     public List<CharlaDto.Respuesta> listar(
+            @RequestParam(required = false) Long salaId,
             @RequestParam(defaultValue = "false") boolean incluirOcultas,
             @RequestParam(defaultValue = "true") boolean incluirFinalizadas) {
-        return service.listar(incluirOcultas, incluirFinalizadas);
+        return service.listar(salaId, incluirOcultas, incluirFinalizadas);
     }
 
     @GetMapping("/{id}")
@@ -74,11 +75,21 @@ public class CharlaController {
         return service.cambiarVisibilidad(id, req.oculta());
     }
 
-    /** Registro rapido: inscribe un DNI en la charla. Abierto. */
+    /** Inscribe un DNI en la charla. Abierto. */
     @PostMapping("/{id}/registros")
     public ResponseEntity<CharlaDto.Respuesta> registrar(@PathVariable Long id,
                                                          @Valid @RequestBody CharlaDto.RegistrarRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.registrarAsistente(id, req.dni()));
+    }
+
+    /**
+     * Inscribe un DNI en varias charlas a la vez (boton Guardar de la sala).
+     * Devuelve cuantas entraron y el detalle de las que no. Abierto.
+     */
+    @PostMapping("/registros")
+    public CharlaDto.ResultadoRegistroMultiple registrarVarias(
+            @Valid @RequestBody CharlaDto.RegistrarVariasRequest req) {
+        return service.registrarAsistenteEnVarias(req.dni(), req.charlaIds());
     }
 
     /** Deshace la inscripcion de un DNI en la charla. Abierto. */

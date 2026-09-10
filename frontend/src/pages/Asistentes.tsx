@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { CheckCircle2, Info, Pencil, Search, ShieldAlert, UserPlus, Users } from 'lucide-react'
 import {
   api,
+  ApiError,
   type Asistente,
   type BusquedaAsistente,
   type EstadisticasAsistentes,
@@ -9,6 +10,7 @@ import {
 import EditarPersonaModal from '../components/EditarPersonaModal'
 import PageHeader from '../components/PageHeader'
 import { useToast } from '../components/Toast'
+import { useAdmin } from '../components/admin'
 import { formatoFechaHora } from '../lib/formato'
 
 const inputCls =
@@ -147,14 +149,35 @@ export default function Asistentes() {
         subtitulo="Registro general al evento"
       />
       <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TarjetaStat etiqueta="ASISTENTES EN BASE" valor={stats?.totalAsistentes} />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <TarjetaStat
+            etiqueta="ASISTENTES EN BASE"
+            valor={stats?.totalAsistentes}
+            detalle={
+              stats
+                ? `${stats.preRegistradosEnBase.toLocaleString('es-PE')} pre-registrados · ${stats.nuevosEnBase.toLocaleString('es-PE')} nuevos`
+                : undefined
+            }
+          />
           <TarjetaStat
             etiqueta="REGISTRADOS AL EVENTO"
             valor={stats?.totalIngresadosAlEvento}
+            detalle={stats ? `${stats.porcentajeIngresados}% de la base` : undefined}
             acento
           />
+          <TarjetaStat
+            etiqueta="PRE-REGISTRADOS QUE INGRESARON"
+            valor={stats?.preRegistradosIngresados}
+            detalle={stats ? `${stats.porcentajePreRegistrados}% de los registrados` : undefined}
+          />
+          <TarjetaStat
+            etiqueta="NUEVOS QUE INGRESARON"
+            valor={stats?.nuevosIngresados}
+            detalle={stats ? `${stats.porcentajeNuevos}% de los registrados` : undefined}
+          />
         </div>
+
+        <AforoEventoPanel stats={stats} onCambio={cargarStats} />
 
         <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
           <h2 className="mb-3 font-semibold text-blue-700">1. Buscar por DNI</h2>
@@ -307,19 +330,141 @@ export default function Asistentes() {
 function TarjetaStat({
   etiqueta,
   valor,
+  detalle,
   acento,
 }: {
   etiqueta: string
   valor?: number
+  detalle?: string
   acento?: boolean
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
       <p className="text-xs font-semibold tracking-wide text-slate-500">{etiqueta}</p>
       <p className={`mt-1 text-3xl font-bold ${acento ? 'text-green-600' : 'text-blue-700'}`}>
         {valor === undefined ? '—' : valor.toLocaleString('es-PE')}
       </p>
+      {detalle && <p className="mt-1 text-xs text-slate-500">{detalle}</p>}
     </div>
+  )
+}
+
+/**
+ * Aforo del evento. Lo ve todo el mundo, pero solo el administrador puede
+ * cambiarlo: si el evento se llena, se amplia desde aqui sin tocar nada mas.
+ */
+function AforoEventoPanel({
+  stats,
+  onCambio,
+}: {
+  stats: EstadisticasAsistentes | null
+  onCambio: () => void
+}) {
+  const { notificar } = useToast()
+  const { esAdmin, salir } = useAdmin()
+  const [editando, setEditando] = useState(false)
+  const [valor, setValor] = useState('0')
+  const [guardando, setGuardando] = useState(false)
+
+  if (!stats) return null
+
+  function abrir() {
+    setValor(String(stats?.aforoEvento ?? 0))
+    setEditando(true)
+  }
+
+  async function guardar() {
+    const aforo = Number(valor)
+    if (!Number.isFinite(aforo) || aforo < 0) {
+      notificar('info', 'El aforo debe ser un numero de 0 o mas (0 = sin limite).')
+      return
+    }
+    setGuardando(true)
+    try {
+      await api.guardarAforoEvento(aforo)
+      notificar('exito', aforo === 0 ? 'Aforo sin limite.' : `Aforo del evento: ${aforo}.`)
+      setEditando(false)
+      onCambio()
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        salir()
+        notificar('error', 'Sesión de administrador expirada. Ingresa la clave de nuevo.')
+      } else {
+        notificar('error', e instanceof Error ? e.message : 'Error al guardar el aforo')
+      }
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const pct = Math.min(stats.porcentajeAforo, 100)
+  const color = pct < 60 ? 'bg-green-500' : pct < 85 ? 'bg-amber-500' : 'bg-red-500'
+
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-slate-500">AFORO DEL EVENTO</p>
+          {stats.aforoSinLimite ? (
+            <p className="mt-1 text-lg font-semibold text-slate-700">Sin límite</p>
+          ) : (
+            <p className="mt-1 text-lg font-semibold text-slate-800">
+              {stats.totalIngresadosAlEvento.toLocaleString('es-PE')} de{' '}
+              {stats.aforoEvento.toLocaleString('es-PE')}
+              <span className="ml-2 text-sm font-normal text-slate-500">
+                ({stats.porcentajeAforo}%)
+              </span>
+            </p>
+          )}
+        </div>
+        {esAdmin &&
+          (editando ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                autoFocus
+                className="w-28 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                value={valor}
+                onChange={(e) => setValor(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && guardar()}
+              />
+              <button
+                onClick={guardar}
+                disabled={guardando}
+                className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {guardando ? '...' : 'Guardar'}
+              </button>
+              <button
+                onClick={() => setEditando(false)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={abrir}
+              className="flex items-center gap-2 rounded-lg border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+            >
+              <Pencil className="h-4 w-4" />
+              Cambiar aforo
+            </button>
+          ))}
+      </div>
+
+      {!stats.aforoSinLimite && (
+        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+          <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+        </div>
+      )}
+      {esAdmin && (
+        <p className="mt-2 text-xs text-slate-400">
+          0 = sin límite. Si el evento se llena, súbelo aquí para seguir registrando.
+        </p>
+      )}
+    </section>
   )
 }
 

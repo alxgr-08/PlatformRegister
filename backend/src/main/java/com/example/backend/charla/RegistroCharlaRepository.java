@@ -16,4 +16,6 @@ public interface RegistroCharlaRepository extends JpaRepository<RegistroCharla, 
     List<RegistroCharla> findByAsistenteIdOrderByRegistradoEnAsc(Long asistenteId);
 
     long deleteByCharlaId(Long charlaId);
+
+    long countByImpresionesGreaterThan(int impresiones);
 }

@@ -1,21 +1,29 @@
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   AlertTriangle,
   CheckCircle2,
   Info,
   Lightbulb,
-  Lock,
   Pencil,
   Presentation,
+  Repeat,
   Search,
+  Settings,
+  X,
 } from 'lucide-react'
-import { api, type Asistente } from '../api'
+import { api, type Asistente, type Sala } from '../api'
 import EditarPersonaModal from '../components/EditarPersonaModal'
-import EditarSalasModal from '../components/EditarSalasModal'
 import PageHeader from '../components/PageHeader'
 import RegistroCharlas from '../components/RegistroCharlas'
+import SelectorSala from '../components/SelectorSala'
 import { useToast } from '../components/Toast'
 import { useAdmin } from '../components/admin'
+import {
+  guardarSalaSeleccionada,
+  leerSalaSeleccionada,
+  olvidarSalaSeleccionada,
+} from '../lib/sala'
 
 const inputCls =
   'w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
@@ -25,16 +33,61 @@ interface MensajePersona {
   texto: string
 }
 
+/**
+ * Pantalla de sala. Cada dispositivo elige una vez en que sala esta (sin
+ * usuario ni contrasena) y desde ahi registra a los asistentes en las charlas
+ * de esa sala. La eleccion se recuerda al recargar.
+ */
 export default function Salas() {
   const { notificar } = useToast()
   const { esAdmin } = useAdmin()
+  const [salas, setSalas] = useState<Sala[]>([])
+  const [cargandoSalas, setCargandoSalas] = useState(true)
+  const [salaId, setSalaId] = useState<number | null>(() => leerSalaSeleccionada())
   const [dni, setDni] = useState('')
   const [persona, setPersona] = useState<Asistente | null>(null)
   const [mensajePersona, setMensajePersona] = useState<MensajePersona | null>(null)
   const [buscando, setBuscando] = useState(false)
-  const [mostrarEditar, setMostrarEditar] = useState(false)
   const [editandoPersona, setEditandoPersona] = useState(false)
   const dniRef = useRef<HTMLInputElement>(null)
+
+  const cargarSalas = useCallback(async () => {
+    try {
+      const lista = await api.listarSalas()
+      setSalas(lista)
+      // Si la sala guardada en este dispositivo ya no existe (la borraron o la
+      // desactivaron), se vuelve a preguntar en que sala esta.
+      setSalaId((actual) => {
+        if (actual != null && !lista.some((s) => s.id === actual)) {
+          olvidarSalaSeleccionada()
+          return null
+        }
+        return actual
+      })
+    } catch (e) {
+      notificar('error', e instanceof Error ? e.message : 'Error al cargar las salas')
+    } finally {
+      setCargandoSalas(false)
+    }
+  }, [notificar])
+
+  useEffect(() => {
+    cargarSalas()
+  }, [cargarSalas])
+
+  const salaActual = salas.find((s) => s.id === salaId) ?? null
+
+  function elegirSala(sala: Sala) {
+    guardarSalaSeleccionada(sala.id)
+    setSalaId(sala.id)
+  }
+
+  /** Vuelve a la eleccion de sala SIN perder la persona que se esta atendiendo. */
+  function cambiarDeSala() {
+    olvidarSalaSeleccionada()
+    setSalaId(null)
+    cargarSalas()
+  }
 
   async function buscar() {
     const d = dni.trim()
@@ -65,38 +118,73 @@ export default function Salas() {
     }
   }
 
-  /** Tras guardar los registros, deja la pantalla lista para el siguiente asistente. */
-  function reiniciar() {
+  /** Deja la pantalla lista para el siguiente asistente. */
+  function siguienteAsistente() {
     setPersona(null)
     setDni('')
     setMensajePersona(null)
     dniRef.current?.focus()
   }
 
-  function abrirEditar() {
-    if (!esAdmin) {
-      notificar('info', 'Debes iniciar sesión como administrador para editar salas y aforos.')
-      return
-    }
-    setMostrarEditar(true)
+  // ------------------------------------------------- Todavia no eligio sala
+  if (salaId == null) {
+    return (
+      <>
+        <PageHeader
+          icono={<Presentation className="h-6 w-6" />}
+          titulo="Salas"
+          subtitulo="Elige la sala de este dispositivo"
+          accion={
+            esAdmin ? (
+              <Link
+                to="/configuracion"
+                className="flex items-center gap-2 rounded-lg border border-blue-300 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+              >
+                <Settings className="h-4 w-4" />
+                Configurar salas
+              </Link>
+            ) : undefined
+          }
+        />
+        {persona && (
+          <div className="mx-auto max-w-4xl px-4 pt-4 sm:px-6">
+            <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+              Sigues atendiendo a <b>{persona.nombreCompleto}</b>. Elige la otra sala para
+              agregarle mas charlas.
+            </p>
+          </div>
+        )}
+        <SelectorSala salas={salas} cargando={cargandoSalas} onElegir={elegirSala} />
+      </>
+    )
   }
 
+  // ------------------------------------------------------- Sala ya elegida
   return (
     <>
       <PageHeader
         icono={<Presentation className="h-6 w-6" />}
-        titulo="Salas / Charlas"
-        subtitulo="Registra asistentes en cada charla"
+        titulo={salaActual?.nombre ?? 'Sala'}
+        subtitulo="Registra asistentes en las charlas de esta sala"
         accion={
-          <button
-            onClick={abrirEditar}
-            className="flex items-center gap-2 rounded-lg border border-blue-300 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50 disabled:hover:bg-white"
-            disabled={!esAdmin}
-            title={!esAdmin ? 'Solo los administradores pueden editar salas y aforos' : ''}
-          >
-            <Lock className="h-4 w-4" />
-            {esAdmin ? 'Editar salas y aforos' : 'Solo Admin'}
-          </button>
+          <div className="flex items-center gap-2">
+            {esAdmin && (
+              <Link
+                to="/configuracion"
+                className="flex items-center gap-2 rounded-lg border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+              >
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Configurar</span>
+              </Link>
+            )}
+            <button
+              onClick={cambiarDeSala}
+              className="flex items-center gap-2 rounded-lg bg-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-300"
+            >
+              <Repeat className="h-4 w-4" />
+              Cambiar de sala
+            </button>
+          </div>
         }
       />
 
@@ -125,14 +213,14 @@ export default function Salas() {
 
           <p className="mt-3 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
             <Info className="h-4 w-4 shrink-0" />
-            El asistente debe estar registrado al evento para poder registrarlo en las salas.
+            Solo se puede inscribir a personas ya registradas al evento.
           </p>
 
           {persona && (
             <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-green-300 bg-green-50/60 p-4">
               <div className="flex items-center gap-2 font-semibold text-green-700">
                 <CheckCircle2 className="h-5 w-5" />
-                Persona encontrada - Registrada al evento
+                Registrada al evento
               </div>
               <span className="text-sm text-slate-600">
                 DNI: <b className="text-slate-800">{persona.dni}</b>
@@ -143,14 +231,24 @@ export default function Salas() {
               <span className="text-sm text-slate-600">
                 Especialidad: <b className="text-slate-800">{persona.especialidad ?? '—'}</b>
               </span>
-              <button
-                onClick={() => setEditandoPersona(true)}
-                title="Editar datos del asistente"
-                className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 sm:ml-auto"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Editar
-              </button>
+              <div className="flex items-center gap-2 sm:ml-auto">
+                <button
+                  onClick={() => setEditandoPersona(true)}
+                  title="Editar datos del asistente"
+                  className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar
+                </button>
+                <button
+                  onClick={siguienteAsistente}
+                  title="Limpiar y atender al siguiente"
+                  className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Siguiente
+                </button>
+              </div>
             </div>
           )}
 
@@ -168,21 +266,22 @@ export default function Salas() {
           )}
         </section>
 
-        <RegistroCharlas persona={persona} onGuardado={reiniciar} />
+        <RegistroCharlas
+          persona={persona}
+          salaId={salaId}
+          salaNombre={salaActual?.nombre ?? 'esta sala'}
+        />
 
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
           <Lightbulb className="h-5 w-5 shrink-0 text-amber-600" />
           <p className="text-sm text-amber-800">
-            <span className="font-semibold">Consejo:</span> Busca el DNI, marca las charlas con
-            "Agregar" y presiona "Guardar". Al guardar, la pantalla se reinicia para el siguiente
-            asistente.
+            <span className="font-semibold">Consejo:</span> marca las charlas con "Agregar" y
+            presiona "Guardar". La pantalla no se reinicia: puedes usar "Cambiar de sala" y
+            seguir agregando charlas a la misma persona. Cuando termines, presiona "Siguiente".
           </p>
         </div>
       </div>
 
-      {mostrarEditar && (
-        <EditarSalasModal onCerrar={() => setMostrarEditar(false)} />
-      )}
       {editandoPersona && persona && (
         <EditarPersonaModal
           asistente={persona}
