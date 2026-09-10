@@ -68,29 +68,15 @@ public final class ConfiguracionDto {
             CampoDiploma capacitador,
             CampoDiploma fecha
     ) {
-        /**
-         * Valores iniciales pensados para el arte del diploma de la feria:
-         * hoja A4 horizontal, con la foto ocupando el tercio izquierdo y los
-         * textos centrados en la columna de la derecha (de 131 a 293 mm).
-         *
-         * Cada texto cae en el espacio en blanco que sigue a su rotulo ya
-         * impreso, en este orden de arriba hacia abajo:
-         *   titulo -> nombre -> "especializacion en:" -> charla ->
-         *   "Brindada por:" -> marca -> "CAPACITADOR:" -> capacitador ->
-         *   "Fecha:" -> fecha.
-         *
-         * Son solo un punto de partida: se afinan una vez desde la pantalla de
-         * calibracion y quedan guardados para todas las hojas.
-         */
+        /** Valores iniciales: hoja A4 horizontal con los textos centrados. */
         public static CalibracionDiploma porDefecto() {
             return new CalibracionDiploma(
-                    "A4", 297, 210, "horizontal", 0, 0,
-                    "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-                    new CampoDiploma(true, 131, 58.8, 162, 17, "centro", true, true),
-                    new CampoDiploma(true, 131, 76, 162, 17, "centro", true, false),
-                    new CampoDiploma(true, 131, 103, 162, 14, "centro", false, false),
-                    new CampoDiploma(true, 131, 127, 162, 14, "centro", false, false),
-                    new CampoDiploma(true, 131, 151, 162, 13, "centro", false, false));
+                    "A4", 297, 210, "horizontal", 0, 0, "Georgia, 'Times New Roman', serif",
+                    new CampoDiploma(true, 20, 112, 257, 32, "centro", true, true),
+                    new CampoDiploma(true, 20, 70, 257, 16, "centro", true, false),
+                    new CampoDiploma(true, 20, 84, 257, 13, "centro", false, false),
+                    new CampoDiploma(true, 20, 95, 257, 13, "centro", false, false),
+                    new CampoDiploma(true, 20, 160, 257, 12, "centro", false, false));
         }
     }
 }

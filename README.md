@@ -61,32 +61,14 @@ El arte del diploma ya viene preimpreso en el papel: el sistema **solo imprime
 los textos** encima. Por eso hay que calibrar una vez dónde cae cada texto.
 
 1. Entra como administrador y presiona **"Calibrar"** en la pantalla de Diplomas.
-2. Presiona **"Subir imagen de guía"** y elige el archivo del arte del diploma
-   (PNG o JPG). Se verá de fondo para calzar los textos exactos. **Esa imagen
-   solo se ve en esa pantalla y solo en ese dispositivo: nunca se imprime.**
-3. Arrastra cada texto (nombre, charla, marca, capacitador, fecha) hasta su
+2. Arrastra cada texto (charla, marca, capacitador, nombre, fecha) hasta su
    lugar, o ajusta los milímetros a mano. También se cambia el tamaño de letra,
    la alineación, negrita y mayúsculas.
-4. Usa **"Imprimir hoja de prueba"** sobre una hoja del diploma real hasta que
+3. Usa **"Imprimir hoja de prueba"** sobre una hoja del diploma real hasta que
    calce. **Ajuste X / Ajuste Y** corren todos los textos a la vez para
    compensar el margen de la impresora.
-5. Presiona **"Guardar calibración"**. Queda guardada en la base de datos, así
+4. Presiona **"Guardar calibración"**. Queda guardada en la base de datos, así
    que vale para **todas las hojas y todos los dispositivos**.
-
-El sistema ya viene con las posiciones calzadas al arte de la Gran Feria de
-Capacitación (A4 horizontal, foto a la izquierda y textos centrados en la
-columna derecha), en este orden:
-
-| Espacio del arte | Dato que se imprime |
-|---|---|
-| Debajo de "DIPLOMA DE PARTICIPACIÓN" | Nombre de la persona (grande, en mayúsculas) |
-| Debajo de "En reconocimiento a su especialización en:" | Nombre de la charla |
-| Debajo de "Brindada por:" | Marca |
-| Debajo de "CAPACITADOR:" | Capacitador |
-| Debajo de "Fecha:" | Fecha de la charla |
-
-Si algo se descuadra, **"Restaurar posiciones sugeridas"** vuelve a estas
-posiciones de fábrica.
 
 > En el diálogo de impresión del navegador: márgenes en **Ninguno**, escala
 > **100 %** y desactiva **"Encabezados y pies de página"**. Si no, los textos
