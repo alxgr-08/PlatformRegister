@@ -1006,7 +1006,36 @@
           }
         },
         {
-          "name": "Exportar por especialidad a Excel",
+          "name": "Aforo por sala y horario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/aforo-horario?fecha=2026-11-20&inicio=2026-11-20T08:00:00",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "aforo-horario"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "2026-11-20"
+                },
+                {
+                  "key": "inicio",
+                  "value": "2026-11-20T08:00:00"
+                }
+              ]
+            },
+            "description": "Ocupacion de cada sala en la franja. Sin parametros toma el primer dia y su primera franja."
+          }
+        },
+        {
+          "name": "Excel: por especialidad",
           "request": {
             "method": "GET",
             "header": [],
@@ -1022,6 +1051,92 @@
                 "excel"
               ]
             }
+          }
+        },
+        {
+          "name": "Excel: por persona",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/por-persona/excel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "por-persona",
+                "excel"
+              ]
+            },
+            "description": "Una fila por persona con todas sus salas y charlas."
+          }
+        },
+        {
+          "name": "Excel: por sala y charla",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/por-sala-charla/excel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "por-sala-charla",
+                "excel"
+              ]
+            },
+            "description": "Listado de asistentes de cada charla."
+          }
+        },
+        {
+          "name": "Excel: detalle completo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/detalle/excel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "detalle",
+                "excel"
+              ]
+            },
+            "description": "Una fila por DNI y charla, con marca, capacitador y estado del diploma."
+          }
+        },
+        {
+          "name": "Excel: aforos por horario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/aforo-horario/excel?fecha=2026-11-20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "aforo-horario",
+                "excel"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "2026-11-20"
+                }
+              ]
+            },
+            "description": "Todas las salas y franjas del dia indicado."
           }
         }
       ]

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
+  AlertTriangle,
   Award,
   CheckCircle2,
   Info,
@@ -413,6 +414,7 @@ function FilaDiploma({
   onVolverAPendiente: () => void
 }) {
   const pendiente = diploma.estado === 'PENDIENTE'
+  const faltanDatos = !diploma.marca || !diploma.capacitador
 
   return (
     <label
@@ -432,9 +434,20 @@ function FilaDiploma({
         <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
           <span>{diploma.sala}</span>
           <span>{formatoFecha(diploma.horaInicio)}</span>
-          {diploma.marca && <span>Marca: {diploma.marca}</span>}
-          {diploma.capacitador && <span>Capacitador: {diploma.capacitador}</span>}
+          <span>Marca: {diploma.marca ?? '—'}</span>
+          <span>Capacitador: {diploma.capacitador ?? '—'}</span>
         </div>
+        {faltanDatos && (
+          <p className="mt-1 flex items-center gap-1 text-xs text-amber-700">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            Esta charla no tiene {!diploma.marca && !diploma.capacitador
+              ? 'marca ni capacitador'
+              : !diploma.marca
+                ? 'marca'
+                : 'capacitador'}
+            : complétalo en Configuración para que salga en el diploma.
+          </p>
+        )}
       </div>
 
       <div className="flex shrink-0 items-center gap-2">

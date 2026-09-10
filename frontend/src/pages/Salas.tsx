@@ -118,6 +118,16 @@ export default function Salas() {
     }
   }
 
+  /**
+   * Tras guardar una charla, deja el DNI seleccionado arriba: escribir el del
+   * siguiente lo reemplaza sin tener que borrarlo, y la persona actual sigue
+   * cargada por si hay que agregarle otra charla.
+   */
+  function prepararSiguienteDni() {
+    dniRef.current?.focus()
+    dniRef.current?.select()
+  }
+
   /** Deja la pantalla lista para el siguiente asistente. */
   function siguienteAsistente() {
     setPersona(null)
@@ -270,6 +280,7 @@ export default function Salas() {
           persona={persona}
           salaId={salaId}
           salaNombre={salaActual?.nombre ?? 'esta sala'}
+          onGuardado={prepararSiguienteDni}
         />
 
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">

@@ -44,9 +44,11 @@ Flujo de registro en la sala:
 3. Presionar el **"GUARDAR"** de esa misma charla, ahí mismo. No hay que bajar
    al final de la lista: cada charla se guarda por separado, así no se pierde
    lo marcado en el celular.
-4. La pantalla **no se reinicia**: se puede usar "Cambiar de sala" y seguir
-   agregándole charlas a la misma persona.
-5. Al terminar con esa persona, presionar **"Siguiente"**.
+4. Al guardar, el DNI de arriba queda **seleccionado**: se escribe el de la
+   siguiente persona encima, sin borrar nada. La persona actual sigue cargada
+   por si hay que agregarle otra charla o cambiar de sala.
+5. Al terminar con esa persona, presionar **"Siguiente"** (o simplemente
+   escribir el siguiente DNI).
 
 Un mismo DNI no puede inscribirse dos veces en la misma charla ni en dos charlas
 que se cruzan de horario, aunque sean de salas distintas. Cuando una charla llega
@@ -59,6 +61,8 @@ Cada charla es un diploma: si asistió a 3, se imprimen 3 hojas.
 
 - Se puede **corregir el nombre completo** antes de imprimir: así saldrá.
 - Se elige **uno, varios o todos los pendientes** (vienen preseleccionados).
+- Si una charla no tiene **marca** o **capacitador**, la lista lo avisa: se
+  completan en Configuración para que salgan impresos.
 - Cada diploma se marca como **Pendiente**, **Impreso** o **Reimpreso**, para
   saber qué falta y poder reimprimir uno solo sin repetir los demás.
 
@@ -68,9 +72,12 @@ El arte del diploma ya viene preimpreso en el papel: el sistema **solo imprime
 los textos** encima. Por eso hay que calibrar una vez dónde cae cada texto.
 
 1. Entra como administrador y presiona **"Calibrar"** en la pantalla de Diplomas.
-2. Arrastra cada texto (charla, marca, capacitador, nombre, fecha) hasta su
-   lugar, o ajusta los milímetros a mano. También se cambia el tamaño de letra,
-   la alineación, negrita y mayúsculas.
+2. Los cinco textos son **independientes**: nombre de la charla, marca,
+   capacitador, nombre del asistente y fecha. Eliges uno en **"Campo"** y lo
+   colocas donde quieras: arrastrándolo, con las **flechas** (1 mm por clic) o
+   escribiendo la posición en milímetros. También se cambia el tamaño de letra,
+   la alineación, negrita y mayúsculas, y se puede apagar un texto que no
+   quieras imprimir.
 3. Usa **"Imprimir hoja de prueba"** sobre una hoja del diploma real hasta que
    calce. **Ajuste X / Ajuste Y** corren todos los textos a la vez para
    compensar el margen de la impresora.
@@ -83,9 +90,18 @@ los textos** encima. Por eso hay que calibrar una vez dónde cae cada texto.
 
 ### 5. Reportes
 
-**Reportes** compara, por especialidad, cuántas personas estaban en la base
-contra cuántas ingresaron, con faltantes y porcentaje de asistencia. Cuenta DNI
-únicos y se exporta a Excel.
+**Reportes** tiene tres bloques:
+
+- **Personas por especialidad:** cuántas estaban en la base contra cuántas
+  ingresaron, con faltantes y porcentaje. Cuenta DNI únicos.
+- **Aforo por sala y horario:** eliges fecha y franja y ves cuántos inscritos
+  tiene la charla de cada sala, cuántos cupos quedan y si está llena. Con
+  "Hora anterior" y "Hora siguiente" recorres el día. Sirve para saber en el
+  momento qué sala ya no admite más gente.
+- **Otros reportes para descargar** en Excel: por persona (con todas sus salas
+  y charlas), por sala y charla (listado de asistentes), detalle completo (una
+  fila por DNI y charla, con marca, capacitador y estado del diploma) y aforos
+  por horario (todas las salas y franjas del día).
 
 **Base de Datos** (admin) mantiene lo de siempre: importar la base previa del
 evento desde Excel y exportar la base completa o los inscritos de una charla.

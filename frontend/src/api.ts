@@ -204,6 +204,35 @@ export interface ReporteEspecialidad {
   total: FilaEspecialidad
 }
 
+export interface Franja {
+  inicio: string
+  fin: string
+  etiqueta: string
+}
+
+export type EstadoAforoSala = 'LLENA' | 'DISPONIBLE' | 'SIN CHARLA'
+
+export interface FilaAforoSala {
+  sala: string
+  charla: string | null
+  inscritos: number
+  aforo: number
+  libres: number
+  estado: EstadoAforoSala
+}
+
+export interface ReporteAforoHorario {
+  fecha: string
+  fechasDisponibles: string[]
+  franja: Franja | null
+  franjas: Franja[]
+  filas: FilaAforoSala[]
+  totalInscritos: number
+  totalAforo: number
+  salasLlenas: number
+  salasConCharla: number
+}
+
 // ----------------------------------------------------- Clave de administracion
 
 const ADMIN_KEY_STORAGE = 'evento.adminKey'
@@ -390,6 +419,14 @@ export const api = {
 
   // --- Reportes ---
   reporteEspecialidad: () => request<ReporteEspecialidad>('/api/reportes/especialidad'),
+
+  reporteAforoHorario: (fecha?: string, inicio?: string) => {
+    const params = new URLSearchParams()
+    if (fecha) params.set('fecha', fecha)
+    if (inicio) params.set('inicio', inicio)
+    const cola = params.toString()
+    return request<ReporteAforoHorario>(`/api/reportes/aforo-horario${cola ? `?${cola}` : ''}`)
+  },
 }
 
 // --------------------------------------------------- Descargas de archivos
@@ -467,4 +504,31 @@ export function exportarExcelDeCharla(charlaId: number, nombreCharla?: string): 
 /** Descarga el reporte de asistencia por especialidad como archivo Excel. */
 export function exportarReporteEspecialidad(): Promise<void> {
   return descargar('/api/reportes/especialidad/excel', `REPORTE_ESPECIALIDAD_${hoy()}.xlsx`)
+}
+
+/** Una fila por persona con todas sus salas y charlas. */
+export function exportarReportePorPersona(): Promise<void> {
+  return descargar('/api/reportes/por-persona/excel', `REPORTE_POR_PERSONA_${hoy()}.xlsx`)
+}
+
+/** Listado de asistentes agrupado por sala y charla. */
+export function exportarReportePorSalaCharla(): Promise<void> {
+  return descargar(
+    '/api/reportes/por-sala-charla/excel',
+    `REPORTE_POR_SALA_Y_CHARLA_${hoy()}.xlsx`,
+  )
+}
+
+/** Una fila por DNI y charla, con marca, capacitador y estado del diploma. */
+export function exportarReporteDetalle(): Promise<void> {
+  return descargar('/api/reportes/detalle/excel', `REPORTE_DETALLE_COMPLETO_${hoy()}.xlsx`)
+}
+
+/** Aforos de todas las salas y franjas del dia indicado. */
+export function exportarReporteAforoDia(fecha?: string): Promise<void> {
+  const cola = fecha ? `?fecha=${encodeURIComponent(fecha)}` : ''
+  return descargar(
+    `/api/reportes/aforo-horario/excel${cola}`,
+    `REPORTE_AFOROS_POR_HORARIO_${fecha ?? hoy()}.xlsx`,
+  )
 }

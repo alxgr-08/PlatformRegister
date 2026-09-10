@@ -21,6 +21,8 @@ interface Props {
   salaId: number | null
   /** Nombre de la sala, para los mensajes en pantalla. */
   salaNombre: string
+  /** Se llama al guardar una charla, para dejar listo el DNI del siguiente. */
+  onGuardado?: () => void
 }
 
 /**
@@ -31,7 +33,7 @@ interface Props {
  * lo marcado. Al guardar, la pantalla NO se reinicia: la persona sigue
  * cargada para poder cambiar de sala y seguir agregandole charlas.
  */
-export default function RegistroCharlas({ persona, salaId, salaNombre }: Props) {
+export default function RegistroCharlas({ persona, salaId, salaNombre, onGuardado }: Props) {
   const { notificar } = useToast()
   const [charlas, setCharlas] = useState<Charla[]>([])
   const [inscripciones, setInscripciones] = useState<Set<number>>(new Set())
@@ -98,6 +100,9 @@ export default function RegistroCharlas({ persona, salaId, salaNombre }: Props) 
       desmarcar(charla.id)
       await cargarCharlas()
       notificar('exito', `${persona.nombreCompleto} inscrito en "${charla.nombre}".`)
+      // Deja el DNI marcado arriba: se puede escribir el del siguiente encima,
+      // sin borrar, o seguir agregandole charlas a esta misma persona.
+      onGuardado?.()
     } catch (e) {
       notificar('error', e instanceof Error ? e.message : 'Error al guardar')
     } finally {

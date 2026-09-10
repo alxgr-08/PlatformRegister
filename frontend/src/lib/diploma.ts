@@ -13,10 +13,10 @@ const ALINEACION: Record<string, CSSProperties['textAlign']> = {
 
 /** Campos que se imprimen en el diploma, en el orden en que se listan en pantalla. */
 export const CAMPOS: { id: CampoDiplomaId; etiqueta: string }[] = [
-  { id: 'charla', etiqueta: 'Charla' },
+  { id: 'charla', etiqueta: 'Nombre de la charla' },
   { id: 'marca', etiqueta: 'Marca' },
   { id: 'capacitador', etiqueta: 'Capacitador' },
-  { id: 'nombre', etiqueta: 'Nombre de la persona' },
+  { id: 'nombre', etiqueta: 'Nombre del asistente' },
   { id: 'fecha', etiqueta: 'Fecha' },
 ]
 
