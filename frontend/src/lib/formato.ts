@@ -49,3 +49,13 @@ export function formatoFecha(iso: string): string {
 export function isoAInputLocal(iso: string): string {
   return iso.slice(0, 16)
 }
+
+/** Separa un ISO del backend en fecha y hora para los campos del formulario. */
+export function separarFechaHora(iso: string): { fecha: string; hora: string } {
+  return { fecha: iso.slice(0, 10), hora: iso.slice(11, 16) }
+}
+
+/** Vuelve a unir fecha y hora en el formato que espera el backend. */
+export function unirFechaHora(fecha: string, hora: string): string {
+  return `${fecha}T${hora}`
+}
