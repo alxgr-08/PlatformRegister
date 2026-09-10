@@ -177,7 +177,12 @@ como **reimpreso**.
 | Metodo | Ruta | Descripcion |
 |--------|------|-------------|
 | GET    | `/api/reportes/especialidad` | En la base, ingresaron, faltantes y % por especialidad |
-| GET    | `/api/reportes/especialidad/excel` | Descarga ese reporte en Excel |
+| GET    | `/api/reportes/aforo-horario?fecha=&inicio=` | Ocupacion de cada sala en una franja horaria |
+| GET    | `/api/reportes/especialidad/excel` | Asistencia por especialidad |
+| GET    | `/api/reportes/por-persona/excel` | Una fila por persona con todas sus salas y charlas |
+| GET    | `/api/reportes/por-sala-charla/excel` | Listado de asistentes de cada charla |
+| GET    | `/api/reportes/detalle/excel` | Una fila por DNI y charla, con diploma |
+| GET    | `/api/reportes/aforo-horario/excel?fecha=` | Todas las salas y franjas del dia |
 
 Los conteos usan **DNI unicos**: nadie aparece dos veces.
 
