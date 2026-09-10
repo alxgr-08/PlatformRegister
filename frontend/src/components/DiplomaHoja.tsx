@@ -9,6 +9,12 @@ interface Props {
   escala?: number
   /** Muestra el borde de la hoja (solo en pantalla, nunca al imprimir). */
   conGuias?: boolean
+  /**
+   * Arte del diploma puesto de fondo como referencia para calibrar.
+   * Solo lo usa la pantalla de calibracion: al imprimir no se envia nunca,
+   * porque el papel ya trae el arte.
+   */
+  fondo?: string | null
   /** Ultima hoja del lote: no fuerza salto de pagina despues. */
   ultima?: boolean
   children?: ReactNode
@@ -25,6 +31,7 @@ export default function DiplomaHoja({
   calibracion,
   escala = 1,
   conGuias = false,
+  fondo = null,
   ultima = false,
   children,
 }: Props) {
@@ -46,6 +53,19 @@ export default function DiplomaHoja({
         boxSizing: 'border-box',
       }}
     >
+      {fondo && (
+        <img
+          src={fondo}
+          alt=""
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'fill',
+          }}
+        />
+      )}
       {CAMPOS.map(({ id }) => {
         const campo = calibracion[id]
         if (!campo?.visible) return null
