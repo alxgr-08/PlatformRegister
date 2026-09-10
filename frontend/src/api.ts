@@ -1,4 +1,4 @@
-// Cliente HTTP del backend de registro de evento y charlas.
+// Cliente HTTP del backend de registro de evento, charlas y diplomas.
 
 const BASE: string = import.meta.env.VITE_API_URL ?? ''
 
@@ -26,15 +26,53 @@ export interface BusquedaAsistente {
 export interface EstadisticasAsistentes {
   totalAsistentes: number
   totalIngresadosAlEvento: number
+  preRegistradosEnBase: number
+  nuevosEnBase: number
+  preRegistradosIngresados: number
+  nuevosIngresados: number
+  porcentajeIngresados: number
+  porcentajePreRegistrados: number
+  porcentajeNuevos: number
+  aforoEvento: number
+  porcentajeAforo: number
+  aforoSinLimite: boolean
+}
+
+export interface AforoEvento {
+  aforo: number
+  registrados: number
+  disponibles: number
+  porcentajeOcupacion: number
+  sinLimite: boolean
 }
 
 export type NivelOcupacion = 'VERDE' | 'NARANJA' | 'ROJO'
 export type EstadoCharla = 'DISPONIBLE' | 'LLENA' | 'FINALIZADA'
 
+export interface Sala {
+  id: number
+  nombre: string
+  orden: number
+  activa: boolean
+  totalCharlas: number
+  charlasVisibles: number
+  aforoTotal: number
+  registradosTotal: number
+}
+
+export interface SalaInput {
+  nombre: string
+  orden?: number
+  activa?: boolean
+}
+
 export interface Charla {
   id: number
   nombre: string
   sala: string
+  salaId: number | null
+  marca: string | null
+  capacitador: string | null
   horaInicio: string
   horaFin: string
   aforo: number
@@ -45,6 +83,23 @@ export interface Charla {
   estado: EstadoCharla
   oculta: boolean
   finalizada: boolean
+}
+
+export interface CharlaInput {
+  nombre: string
+  salaId: number
+  marca?: string
+  capacitador?: string
+  horaInicio: string
+  horaFin: string
+  aforo: number
+  oculta?: boolean
+}
+
+export interface ResultadoRegistroMultiple {
+  registradas: number
+  errores: string[]
+  charlas: Charla[]
 }
 
 export interface CrearAsistenteInput {
@@ -62,20 +117,92 @@ export interface ActualizarAsistenteInput {
   especialidad?: string
 }
 
-export interface CharlaInput {
-  nombre: string
-  sala: string
-  horaInicio: string
-  horaFin: string
-  aforo: number
-  oculta?: boolean
-}
-
 export interface ResultadoCarga {
   filasLeidas: number
   filasProcesadas: number
   filasOmitidas: number
   errores: string[]
+}
+
+// ------------------------------------------------------------- Diplomas
+
+export type EstadoDiploma = 'PENDIENTE' | 'IMPRESO'
+
+export interface Diploma {
+  registroId: number
+  charlaId: number
+  dni: string
+  nombreCompleto: string
+  charla: string
+  sala: string
+  marca: string | null
+  capacitador: string | null
+  horaInicio: string
+  horaFin: string
+  estado: EstadoDiploma
+  impresiones: number
+  reimpreso: boolean
+  impresoEn: string | null
+}
+
+export interface BusquedaDiplomas {
+  asistente: Asistente
+  diplomas: Diploma[]
+  pendientes: number
+  impresos: number
+}
+
+export interface ResumenDiplomas {
+  total: number
+  pendientes: number
+  impresos: number
+  reimpresos: number
+}
+
+export type AlineacionTexto = 'izquierda' | 'centro' | 'derecha'
+
+/** Posicion y estilo de un texto del diploma, en milimetros sobre la hoja. */
+export interface CampoDiploma {
+  visible: boolean
+  x: number
+  y: number
+  ancho: number
+  tamano: number
+  alineacion: AlineacionTexto
+  negrita: boolean
+  mayusculas: boolean
+}
+
+export type CampoDiplomaId = 'nombre' | 'charla' | 'marca' | 'capacitador' | 'fecha'
+
+export interface CalibracionDiploma {
+  tamanoHoja: string
+  anchoHoja: number
+  altoHoja: number
+  orientacion: 'horizontal' | 'vertical'
+  desplazamientoX: number
+  desplazamientoY: number
+  fuente: string
+  nombre: CampoDiploma
+  charla: CampoDiploma
+  marca: CampoDiploma
+  capacitador: CampoDiploma
+  fecha: CampoDiploma
+}
+
+// ------------------------------------------------------------- Reportes
+
+export interface FilaEspecialidad {
+  especialidad: string
+  enBase: number
+  ingresaron: number
+  faltantes: number
+  porcentajeAsistencia: number
+}
+
+export interface ReporteEspecialidad {
+  filas: FilaEspecialidad[]
+  total: FilaEspecialidad
 }
 
 // ----------------------------------------------------- Clave de administracion
@@ -172,11 +299,28 @@ export const api = {
   charlasDelAsistente: (dni: string) =>
     request<Charla[]>(`/api/asistentes/${encodeURIComponent(dni)}/charlas`),
 
+  // --- Salas ---
+  listarSalas: (incluirInactivas = false) =>
+    request<Sala[]>(`/api/salas?incluirInactivas=${incluirInactivas}`),
+
+  crearSala: (input: SalaInput) =>
+    request<Sala>('/api/salas', { method: 'POST', body: input, admin: true }),
+
+  actualizarSala: (id: number, input: SalaInput) =>
+    request<Sala>(`/api/salas/${id}`, { method: 'PUT', body: input, admin: true }),
+
+  eliminarSala: (id: number) =>
+    request<void>(`/api/salas/${id}`, { method: 'DELETE', admin: true }),
+
   // --- Charlas ---
-  listarCharlas: (incluirOcultas = true, incluirFinalizadas = true) =>
-    request<Charla[]>(
-      `/api/charlas?incluirOcultas=${incluirOcultas}&incluirFinalizadas=${incluirFinalizadas}`,
-    ),
+  listarCharlas: (salaId?: number | null, incluirOcultas = true, incluirFinalizadas = true) => {
+    const params = new URLSearchParams({
+      incluirOcultas: String(incluirOcultas),
+      incluirFinalizadas: String(incluirFinalizadas),
+    })
+    if (salaId != null) params.set('salaId', String(salaId))
+    return request<Charla[]>(`/api/charlas?${params.toString()}`)
+  },
 
   crearCharla: (input: CharlaInput) =>
     request<Charla>('/api/charlas', { method: 'POST', body: input, admin: true }),
@@ -190,6 +334,13 @@ export const api = {
   registrarEnCharla: (charlaId: number, dni: string) =>
     request<Charla>(`/api/charlas/${charlaId}/registros`, { method: 'POST', body: { dni } }),
 
+  /** Inscribe un DNI en varias charlas de una sola vez (boton Guardar de la sala). */
+  registrarEnVariasCharlas: (dni: string, charlaIds: number[]) =>
+    request<ResultadoRegistroMultiple>('/api/charlas/registros', {
+      method: 'POST',
+      body: { dni, charlaIds },
+    }),
+
   deshacerRegistroCharla: (charlaId: number, dni: string) =>
     request<Charla>(`/api/charlas/${charlaId}/registros/${encodeURIComponent(dni)}`, {
       method: 'DELETE',
@@ -197,9 +348,74 @@ export const api = {
 
   cambiarVisibilidadCharla: (charlaId: number, oculta: boolean) =>
     request<Charla>(`/api/charlas/${charlaId}/visibilidad`, { method: 'PATCH', body: { oculta } }),
+
+  // --- Configuracion ---
+  aforoEvento: () => request<AforoEvento>('/api/configuracion/aforo'),
+
+  guardarAforoEvento: (aforo: number) =>
+    request<AforoEvento>('/api/configuracion/aforo', { method: 'PUT', body: { aforo }, admin: true }),
+
+  calibracionDiploma: () => request<CalibracionDiploma>('/api/configuracion/diploma'),
+
+  guardarCalibracionDiploma: (calibracion: CalibracionDiploma) =>
+    request<CalibracionDiploma>('/api/configuracion/diploma', {
+      method: 'PUT',
+      body: calibracion,
+      admin: true,
+    }),
+
+  // --- Diplomas ---
+  buscarDiplomas: (dni: string) =>
+    request<BusquedaDiplomas>(`/api/diplomas/${encodeURIComponent(dni)}`),
+
+  resumenDiplomas: () => request<ResumenDiplomas>('/api/diplomas/resumen'),
+
+  marcarDiplomasImpresos: (registroIds: number[]) =>
+    request<Diploma[]>('/api/diplomas/impresion', { method: 'POST', body: { registroIds } }),
+
+  marcarDiplomaPendiente: (registroId: number) =>
+    request<Diploma>(`/api/diplomas/${registroId}/pendiente`, { method: 'POST' }),
+
+  // --- Reportes ---
+  reporteEspecialidad: () => request<ReporteEspecialidad>('/api/reportes/especialidad'),
 }
 
-// --------------------------------------------------- Base de datos (Excel)
+// --------------------------------------------------- Descargas de archivos
+
+/** Descarga un archivo del backend enviando la clave de admin si la hay. */
+async function descargar(path: string, nombreArchivo: string): Promise<void> {
+  const headers: Record<string, string> = {}
+  const clave = getAdminKey()
+  if (clave) headers['X-Admin-Key'] = clave
+
+  let res: Response
+  try {
+    res = await fetch(`${BASE}${path}`, { headers })
+  } catch {
+    throw new ApiError(0, 'No se pudo conectar con el servidor.')
+  }
+  if (!res.ok) {
+    let mensaje = `Error ${res.status}`
+    try {
+      const d = JSON.parse(await res.text())
+      mensaje = d?.mensaje ?? mensaje
+    } catch {
+      /* respuesta sin cuerpo JSON */
+    }
+    throw new ApiError(res.status, mensaje)
+  }
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = nombreArchivo
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+const hoy = () => new Date().toISOString().slice(0, 10)
 
 /** Importa la base de asistentes desde un archivo Excel (.xlsx). */
 export async function importarExcel(archivo: File): Promise<ResultadoCarga> {
@@ -224,70 +440,19 @@ export async function importarExcel(archivo: File): Promise<ResultadoCarga> {
 }
 
 /** Descarga toda la base de asistentes como archivo Excel. */
-export async function exportarExcel(): Promise<void> {
-  const headers: Record<string, string> = {}
-  const clave = getAdminKey()
-  if (clave) headers['X-Admin-Key'] = clave
-
-  let res: Response
-  try {
-    res = await fetch(`${BASE}/api/carga/exportar`, { headers })
-  } catch {
-    throw new ApiError(0, 'No se pudo conectar con el servidor.')
-  }
-  if (!res.ok) {
-    let mensaje = `Error ${res.status}`
-    try {
-      const d = JSON.parse(await res.text())
-      mensaje = d?.mensaje ?? mensaje
-    } catch {
-      /* respuesta sin cuerpo JSON */
-    }
-    throw new ApiError(res.status, mensaje)
-  }
-  const blob = await res.blob()
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `BASE_DATOS_EVENTO_${new Date().toISOString().slice(0, 10)}.xlsx`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
+export function exportarExcel(): Promise<void> {
+  return descargar('/api/carga/exportar', `BASE_DATOS_EVENTO_${hoy()}.xlsx`)
 }
 
 /** Descarga los asistentes de una charla especifica como archivo Excel. */
-export async function exportarExcelDeCharla(charlaId: number, nombreCharla?: string): Promise<void> {
-  const headers: Record<string, string> = {}
-  const clave = getAdminKey()
-  if (clave) headers['X-Admin-Key'] = clave
-
-  let res: Response
-  try {
-    res = await fetch(`${BASE}/api/carga/exportar/charla/${charlaId}`, { headers })
-  } catch {
-    throw new ApiError(0, 'No se pudo conectar con el servidor.')
-  }
-  if (!res.ok) {
-    let mensaje = `Error ${res.status}`
-    try {
-      const d = JSON.parse(await res.text())
-      mensaje = d?.mensaje ?? mensaje
-    } catch {
-      /* respuesta sin cuerpo JSON */
-    }
-    throw new ApiError(res.status, mensaje)
-  }
-  const blob = await res.blob()
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
+export function exportarExcelDeCharla(charlaId: number, nombreCharla?: string): Promise<void> {
   const nombreLimpio = nombreCharla
     ? nombreCharla.replace(/[^a-zA-Z0-9]+/g, '_')
     : `charla_${charlaId}`
-  a.download = `CHARLA_${nombreLimpio}_${new Date().toISOString().slice(0, 10)}.xlsx`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
+  return descargar(`/api/carga/exportar/charla/${charlaId}`, `CHARLA_${nombreLimpio}_${hoy()}.xlsx`)
+}
+
+/** Descarga el reporte de asistencia por especialidad como archivo Excel. */
+export function exportarReporteEspecialidad(): Promise<void> {
+  return descargar('/api/reportes/especialidad/excel', `REPORTE_ESPECIALIDAD_${hoy()}.xlsx`)
 }

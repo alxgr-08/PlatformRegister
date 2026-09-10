@@ -35,7 +35,7 @@ export default function BaseDatos() {
   useEffect(() => {
     if (!esAdmin) return
     api
-      .listarCharlas(true, true)
+      .listarCharlas(null, true, true)
       .then(setCharlas)
       .catch(() => {
         /* silencioso */

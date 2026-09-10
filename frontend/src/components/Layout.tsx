@@ -1,6 +1,18 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { CalendarDays, Database, Lock, LogOut, Menu, Presentation, Users, X } from 'lucide-react'
+import {
+  Award,
+  BarChart3,
+  CalendarDays,
+  Database,
+  Lock,
+  LogOut,
+  Menu,
+  Presentation,
+  Settings,
+  Users,
+  X,
+} from 'lucide-react'
 import { useAdmin } from './admin'
 import AdminKeyModal from './AdminKeyModal'
 
@@ -51,12 +63,26 @@ export default function Layout() {
             <Presentation className="h-5 w-5" />
             Salas / Charlas
           </NavLink>
-          {/* BaseDatos solo visible para admin */}
+          <NavLink to="/diplomas" className={claseNav} onClick={cerrar}>
+            <Award className="h-5 w-5" />
+            Diplomas
+          </NavLink>
+          <NavLink to="/reportes" className={claseNav} onClick={cerrar}>
+            <BarChart3 className="h-5 w-5" />
+            Reportes
+          </NavLink>
+          {/* Configuracion y Base de Datos solo visibles para admin */}
           {esAdmin && (
-            <NavLink to="/base-datos" className={claseNav} onClick={cerrar}>
-              <Database className="h-5 w-5" />
-              Base de Datos
-            </NavLink>
+            <>
+              <NavLink to="/configuracion" className={claseNav} onClick={cerrar}>
+                <Settings className="h-5 w-5" />
+                Configuración
+              </NavLink>
+              <NavLink to="/base-datos" className={claseNav} onClick={cerrar}>
+                <Database className="h-5 w-5" />
+                Base de Datos
+              </NavLink>
+            </>
           )}
         </nav>
       </aside>

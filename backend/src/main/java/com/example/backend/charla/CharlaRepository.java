@@ -11,6 +11,10 @@ public interface CharlaRepository extends JpaRepository<Charla, Long> {
 
     List<Charla> findAllByOrderByHoraInicioAsc();
 
+    List<Charla> findBySalaIdOrderByHoraInicioAsc(Long salaId);
+
+    long countBySalaId(Long salaId);
+
     /**
      * Incrementa el contador de registrados solo si aun hay aforo disponible.
      * Devuelve 1 si lo logro, 0 si el aforo ya esta completo.

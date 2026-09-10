@@ -11,4 +11,8 @@ public interface AsistenteRepository extends JpaRepository<Asistente, Long> {
     boolean existsByDni(String dni);
 
     long countByFechaIngresoEventoIsNotNull();
+
+    long countByTipoRegistro(String tipoRegistro);
+
+    long countByTipoRegistroAndFechaIngresoEventoIsNotNull(String tipoRegistro);
 }

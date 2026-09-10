@@ -7,17 +7,19 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 /**
- * Objetos de transferencia (DTO) del modulo de charlas / salas.
+ * Objetos de transferencia (DTO) del modulo de charlas.
  */
 public final class CharlaDto {
 
     private CharlaDto() {
     }
 
-    /** Cuerpo para crear una charla. */
+    /** Cuerpo para crear una charla dentro de una sala. */
     public record CrearRequest(
             @NotBlank(message = "El nombre de la charla es obligatorio") String nombre,
-            @NotBlank(message = "La sala es obligatoria") String sala,
+            @NotNull(message = "Indique la sala de la charla") Long salaId,
+            String marca,
+            String capacitador,
             @NotNull(message = "La hora de inicio es obligatoria") LocalDateTime horaInicio,
             @NotNull(message = "La hora de fin es obligatoria") LocalDateTime horaFin,
             @NotNull(message = "El aforo es obligatorio")
@@ -28,7 +30,9 @@ public final class CharlaDto {
     /** Cuerpo para editar una charla. */
     public record ActualizarRequest(
             @NotBlank(message = "El nombre de la charla es obligatorio") String nombre,
-            @NotBlank(message = "La sala es obligatoria") String sala,
+            @NotNull(message = "Indique la sala de la charla") Long salaId,
+            String marca,
+            String capacitador,
             @NotNull(message = "La hora de inicio es obligatoria") LocalDateTime horaInicio,
             @NotNull(message = "La hora de fin es obligatoria") LocalDateTime horaFin,
             @NotNull(message = "El aforo es obligatorio")
@@ -49,11 +53,29 @@ public final class CharlaDto {
     ) {
     }
 
+    /** Cuerpo para inscribir un DNI en varias charlas de una sola vez. */
+    public record RegistrarVariasRequest(
+            @NotBlank(message = "El DNI es obligatorio") String dni,
+            @NotNull(message = "Indique las charlas a registrar") java.util.List<Long> charlaIds
+    ) {
+    }
+
+    /** Resultado de un registro multiple: que charlas entraron y cuales no. */
+    public record ResultadoRegistroMultiple(
+            int registradas,
+            java.util.List<String> errores,
+            java.util.List<Respuesta> charlas
+    ) {
+    }
+
     /** Datos de una charla con su estado de ocupacion calculado. */
     public record Respuesta(
             Long id,
             String nombre,
             String sala,
+            Long salaId,
+            String marca,
+            String capacitador,
             LocalDateTime horaInicio,
             LocalDateTime horaFin,
             int aforo,

@@ -11,3 +11,31 @@ body {
   background-color: #f1f5f9;
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
 }
+
+/* ---------------------------------------------------------------------------
+   Impresion de diplomas.
+
+   El area de impresion vive fuera de #root (portal a <body>) y esta oculta en
+   pantalla. Al imprimir se oculta toda la aplicacion y solo salen las hojas de
+   diploma, sin fondo ni bordes: el arte del diploma ya viene preimpreso.
+--------------------------------------------------------------------------- */
+#area-impresion {
+  display: none;
+}
+
+@media print {
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  #root {
+    display: none !important;
+  }
+
+  #area-impresion {
+    display: block !important;
+  }
+}

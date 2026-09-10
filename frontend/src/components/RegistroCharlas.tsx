@@ -17,15 +17,21 @@ const colorTexto: Record<NivelOcupacion, string> = {
 
 interface Props {
   persona: Asistente | null
-  onGuardado: () => void
+  /** Sala elegida en este dispositivo: solo se muestran sus charlas. */
+  salaId: number | null
+  /** Nombre de la sala, para los mensajes en pantalla. */
+  salaNombre: string
 }
 
 /**
- * Registro de un asistente en charlas. Flujo:
- *  1. Se marcan las charlas con "Agregar" (seleccion local).
- *  2. El boton "Guardar" confirma todas las seleccionadas y reinicia la pantalla.
+ * Registro de un asistente en las charlas de la sala actual. Flujo:
+ *  1. Se marcan las charlas con "Agregar" (seleccion local, no toca el servidor).
+ *  2. "Guardar" confirma todas las seleccionadas de una sola vez.
+ *
+ * Al guardar la pantalla NO se reinicia: la persona sigue cargada para poder
+ * cambiar de sala y seguir agregandole charlas.
  */
-export default function RegistroCharlas({ persona, onGuardado }: Props) {
+export default function RegistroCharlas({ persona, salaId, salaNombre }: Props) {
   const { notificar } = useToast()
   const [charlas, setCharlas] = useState<Charla[]>([])
   const [inscripciones, setInscripciones] = useState<Set<number>>(new Set())
@@ -35,12 +41,16 @@ export default function RegistroCharlas({ persona, onGuardado }: Props) {
   const [ocultosAbierto, setOcultosAbierto] = useState(false)
 
   const cargarCharlas = useCallback(async () => {
+    if (salaId == null) {
+      setCharlas([])
+      return
+    }
     try {
-      setCharlas(await api.listarCharlas(true, true))
+      setCharlas(await api.listarCharlas(salaId, true, true))
     } catch (e) {
       notificar('error', e instanceof Error ? e.message : 'Error al cargar charlas')
     }
-  }, [notificar])
+  }, [notificar, salaId])
 
   useEffect(() => {
     cargarCharlas()
@@ -48,25 +58,24 @@ export default function RegistroCharlas({ persona, onGuardado }: Props) {
     return () => clearInterval(id)
   }, [cargarCharlas])
 
-  useEffect(() => {
-    setSeleccionadas(new Set())
+  /** Trae las charlas en las que la persona ya esta inscrita (de cualquier sala). */
+  const cargarInscripciones = useCallback(async () => {
     if (!persona) {
       setInscripciones(new Set())
       return
     }
-    let activo = true
-    api
-      .charlasDelAsistente(persona.dni)
-      .then((chs) => {
-        if (activo) setInscripciones(new Set(chs.map((c) => c.id)))
-      })
-      .catch(() => {
-        /* silencioso */
-      })
-    return () => {
-      activo = false
+    try {
+      const chs = await api.charlasDelAsistente(persona.dni)
+      setInscripciones(new Set(chs.map((c) => c.id)))
+    } catch {
+      /* silencioso: no es critico para poder seguir registrando */
     }
   }, [persona])
+
+  useEffect(() => {
+    setSeleccionadas(new Set())
+    cargarInscripciones()
+  }, [cargarInscripciones])
 
   function alternarSeleccion(id: number) {
     setSeleccionadas((prev) => {
@@ -114,30 +123,31 @@ export default function RegistroCharlas({ persona, onGuardado }: Props) {
     }
   }
 
+  /**
+   * Guarda todas las charlas marcadas. La pantalla se mantiene tal cual para
+   * poder cambiar de sala y seguir agregando charlas a la misma persona.
+   */
   async function guardar() {
     if (!persona || seleccionadas.size === 0) return
     setGuardando(true)
-    let exitos = 0
-    const errores: string[] = []
-    for (const id of seleccionadas) {
-      const charla = charlas.find((c) => c.id === id)
-      try {
-        await api.registrarEnCharla(id, persona.dni)
-        exitos++
-      } catch (e) {
-        errores.push(`${charla?.nombre ?? 'Charla'}: ${e instanceof Error ? e.message : 'error'}`)
+    try {
+      const r = await api.registrarEnVariasCharlas(persona.dni, [...seleccionadas])
+      if (r.registradas > 0) {
+        notificar(
+          'exito',
+          `${persona.nombreCompleto}: ${r.registradas} charla(s) guardada(s). Puedes cambiar de sala y seguir agregando.`,
+        )
       }
+      if (r.errores.length > 0) {
+        notificar('error', r.errores.join(' | '))
+      }
+      setSeleccionadas(new Set())
+      await Promise.all([cargarCharlas(), cargarInscripciones()])
+    } catch (e) {
+      notificar('error', e instanceof Error ? e.message : 'Error al guardar')
+    } finally {
+      setGuardando(false)
     }
-    await cargarCharlas()
-    if (exitos > 0) {
-      notificar('exito', `${persona.nombreCompleto}: ${exitos} charla(s) guardada(s).`)
-    }
-    if (errores.length > 0) {
-      notificar('error', errores.join(' | '))
-    }
-    setSeleccionadas(new Set())
-    setGuardando(false)
-    onGuardado()
   }
 
   const estaLlena = (c: Charla) => c.registrados >= c.aforo
@@ -149,7 +159,7 @@ export default function RegistroCharlas({ persona, onGuardado }: Props) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white">
       <div className="border-b border-slate-200 px-4 py-3 sm:px-5 sm:py-4">
-        <h2 className="font-semibold text-blue-700">2. Registrar en las charlas</h2>
+        <h2 className="font-semibold text-blue-700">2. Charlas de {salaNombre}</h2>
       </div>
 
       {!persona && (
@@ -160,7 +170,9 @@ export default function RegistroCharlas({ persona, onGuardado }: Props) {
 
       <div className="space-y-2 p-3 sm:p-4">
         {activas.length === 0 && (
-          <p className="py-6 text-center text-sm text-slate-400">No hay charlas activas.</p>
+          <p className="py-6 text-center text-sm text-slate-400">
+            Esta sala no tiene charlas visibles.
+          </p>
         )}
         {activas.map((c) => (
           <TarjetaCharla
@@ -179,7 +191,7 @@ export default function RegistroCharlas({ persona, onGuardado }: Props) {
       </div>
 
       {persona && (
-        <div className="border-t border-slate-200 p-3 sm:p-4">
+        <div className="sticky bottom-0 border-t border-slate-200 bg-white p-3 sm:p-4">
           <button
             onClick={guardar}
             disabled={seleccionadas.size === 0 || guardando}
@@ -189,8 +201,8 @@ export default function RegistroCharlas({ persona, onGuardado }: Props) {
             {guardando
               ? 'Guardando...'
               : seleccionadas.size === 0
-                ? 'Selecciona charlas y presiona Guardar'
-                : `Guardar registros (${seleccionadas.size})`}
+                ? 'Marca charlas con "Agregar" y presiona Guardar'
+                : `Guardar ${seleccionadas.size} charla(s)`}
           </button>
         </div>
       )}
@@ -264,10 +276,17 @@ function TarjetaCharla({
 
       <div className="min-w-0 flex-1">
         <div className="font-medium text-slate-800">{charla.nombre}</div>
-        <div className="mt-1">
-          <span className="rounded bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
-            {charla.sala}
-          </span>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {charla.marca && (
+            <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+              {charla.marca}
+            </span>
+          )}
+          {charla.capacitador && (
+            <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+              {charla.capacitador}
+            </span>
+          )}
         </div>
       </div>
 
@@ -322,7 +341,7 @@ function TarjetaCharla({
             className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 sm:w-auto"
           >
             <Check className="h-4 w-4" />
-            Seleccionada
+            Agregada
           </button>
         ) : (
           <button
@@ -363,7 +382,6 @@ function FilaOculta({
         {formatoHora(charla.horaInicio)} - {formatoHora(charla.horaFin)}
       </span>
       <span className="font-medium text-slate-700">{charla.nombre}</span>
-      <span className="rounded bg-slate-200 px-2 py-0.5 text-xs">{charla.sala}</span>
       <span>
         {charla.registrados}/{charla.aforo}
       </span>

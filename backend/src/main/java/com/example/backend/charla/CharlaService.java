@@ -4,19 +4,22 @@ import com.example.backend.asistente.Asistente;
 import com.example.backend.asistente.AsistenteRepository;
 import com.example.backend.charla.dto.CharlaDto;
 import com.example.backend.common.ApiException;
+import com.example.backend.sala.Sala;
+import com.example.backend.sala.SalaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Logica del modulo de Salas / Charlas: alta y edicion de charlas,
- * control de aforo e inscripcion rapida de asistentes.
+ * Logica del modulo de Charlas: alta y edicion dentro de cada sala,
+ * control de aforo e inscripcion de asistentes ya registrados al evento.
  */
 @Service
 public class CharlaService {
@@ -24,19 +27,29 @@ public class CharlaService {
     private final CharlaRepository charlaRepo;
     private final RegistroCharlaRepository registroRepo;
     private final AsistenteRepository asistenteRepo;
+    private final SalaRepository salaRepo;
 
     public CharlaService(CharlaRepository charlaRepo,
                          RegistroCharlaRepository registroRepo,
-                         AsistenteRepository asistenteRepo) {
+                         AsistenteRepository asistenteRepo,
+                         SalaRepository salaRepo) {
         this.charlaRepo = charlaRepo;
         this.registroRepo = registroRepo;
         this.asistenteRepo = asistenteRepo;
+        this.salaRepo = salaRepo;
     }
 
+    /**
+     * Lista las charlas. Si se indica salaId, devuelve solo las de esa sala:
+     * es lo que usa cada dispositivo despues de elegir en que sala esta.
+     */
     @Transactional(readOnly = true)
-    public List<CharlaDto.Respuesta> listar(boolean incluirOcultas, boolean incluirFinalizadas) {
+    public List<CharlaDto.Respuesta> listar(Long salaId, boolean incluirOcultas, boolean incluirFinalizadas) {
         LocalDateTime ahora = LocalDateTime.now();
-        return charlaRepo.findAllByOrderByHoraInicioAsc().stream()
+        List<Charla> base = salaId == null
+                ? charlaRepo.findAllByOrderByHoraInicioAsc()
+                : charlaRepo.findBySalaIdOrderByHoraInicioAsc(salaId);
+        return base.stream()
                 .filter(c -> incluirOcultas || !Boolean.TRUE.equals(c.getOculta()))
                 .filter(c -> incluirFinalizadas || !c.getHoraFin().isBefore(ahora))
                 .map(this::aRespuesta)
@@ -51,9 +64,13 @@ public class CharlaService {
     @Transactional
     public CharlaDto.Respuesta crear(CharlaDto.CrearRequest req) {
         validarHorario(req.horaInicio(), req.horaFin());
+        Sala sala = buscarSala(req.salaId());
         Charla c = new Charla();
         c.setNombre(req.nombre().trim());
-        c.setSala(req.sala().trim());
+        c.setSalaId(sala.getId());
+        c.setSala(sala.getNombre());
+        c.setMarca(limpiar(req.marca()));
+        c.setCapacitador(limpiar(req.capacitador()));
         c.setHoraInicio(req.horaInicio());
         c.setHoraFin(req.horaFin());
         c.setAforo(req.aforo());
@@ -65,9 +82,19 @@ public class CharlaService {
     @Transactional
     public CharlaDto.Respuesta actualizar(Long id, CharlaDto.ActualizarRequest req) {
         validarHorario(req.horaInicio(), req.horaFin());
+        Sala sala = buscarSala(req.salaId());
         Charla c = buscarEntidad(id);
+        int yaInscritos = c.getRegistrados() == null ? 0 : c.getRegistrados();
+        if (req.aforo() < yaInscritos) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "La charla ya tiene " + yaInscritos
+                            + " inscritos: el aforo no puede ser menor a esa cantidad.");
+        }
         c.setNombre(req.nombre().trim());
-        c.setSala(req.sala().trim());
+        c.setSalaId(sala.getId());
+        c.setSala(sala.getNombre());
+        c.setMarca(limpiar(req.marca()));
+        c.setCapacitador(limpiar(req.capacitador()));
         c.setHoraInicio(req.horaInicio());
         c.setHoraFin(req.horaFin());
         c.setAforo(req.aforo());
@@ -114,7 +141,7 @@ public class CharlaService {
         int actualizadas = charlaRepo.incrementarRegistrados(charlaId);
         if (actualizadas == 0) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    "El aforo de la charla \"" + charla.getNombre() + "\" esta completo.");
+                    "El aforo de la charla " + charla.getNombre() + " esta completo.");
         }
 
         RegistroCharla r = new RegistroCharla();
@@ -122,9 +149,35 @@ public class CharlaService {
         r.setAsistenteId(asistente.getId());
         r.setDni(asistente.getDni());
         r.setRegistradoEn(LocalDateTime.now());
+        r.setDiplomaEstado("PENDIENTE");
+        r.setImpresiones(0);
         registroRepo.save(r);
 
         return aRespuesta(buscarEntidad(charlaId));
+    }
+
+    /**
+     * Inscribe un DNI en varias charlas de una sola vez: es el boton Guardar de
+     * la pantalla de sala. Las que fallen se informan una por una sin cortar el
+     * resto, para que el operador vea exactamente que paso con cada charla.
+     */
+    @Transactional
+    public CharlaDto.ResultadoRegistroMultiple registrarAsistenteEnVarias(String dni, List<Long> charlaIds) {
+        List<String> errores = new ArrayList<>();
+        List<CharlaDto.Respuesta> resultado = new ArrayList<>();
+        int registradas = 0;
+        for (Long charlaId : charlaIds) {
+            try {
+                resultado.add(registrarAsistente(charlaId, dni));
+                registradas++;
+            } catch (ApiException e) {
+                String nombre = charlaRepo.findById(charlaId)
+                        .map(Charla::getNombre)
+                        .orElse("Charla " + charlaId);
+                errores.add(nombre + ": " + e.getMessage());
+            }
+        }
+        return new CharlaDto.ResultadoRegistroMultiple(registradas, errores, resultado);
     }
 
     /** Deshace la inscripcion de un DNI en una charla y libera un cupo. */
@@ -176,6 +229,12 @@ public class CharlaService {
                         "No existe una charla con el id " + id));
     }
 
+    private Sala buscarSala(Long salaId) {
+        return salaRepo.findById(salaId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
+                        "No existe una sala con el id " + salaId));
+    }
+
     private Asistente buscarAsistente(String dni) {
         String d = dni == null ? null : dni.trim();
         return asistenteRepo.findByDni(d)
@@ -193,6 +252,14 @@ public class CharlaService {
         }
     }
 
+    private String limpiar(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        String v = valor.trim();
+        return v.isEmpty() ? null : v;
+    }
+
     private CharlaDto.Respuesta aRespuesta(Charla c) {
         int aforo = c.getAforo() == null ? 0 : c.getAforo();
         int registrados = c.getRegistrados() == null ? 0 : c.getRegistrados();
@@ -202,7 +269,8 @@ public class CharlaService {
         boolean finalizada = c.getHoraFin().isBefore(LocalDateTime.now());
         String estado = finalizada ? "FINALIZADA" : (registrados >= aforo ? "LLENA" : "DISPONIBLE");
         return new CharlaDto.Respuesta(
-                c.getId(), c.getNombre(), c.getSala(), c.getHoraInicio(), c.getHoraFin(),
+                c.getId(), c.getNombre(), c.getSala(), c.getSalaId(), c.getMarca(), c.getCapacitador(),
+                c.getHoraInicio(), c.getHoraFin(),
                 aforo, registrados, disponibles, porcentaje, nivel, estado,
                 Boolean.TRUE.equals(c.getOculta()), finalizada);
     }

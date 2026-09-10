@@ -5,17 +5,22 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
 /**
- * Charla / sala del evento. El campo "registrados" es un contador que se
- * actualiza de forma atomica para controlar el aforo bajo alta concurrencia.
+ * Charla del evento. Pertenece a una sala (salaId) y guarda ademas la marca y
+ * el capacitador, que son los datos que se imprimen en el diploma.
+ *
+ * El campo "registrados" es un contador que se actualiza de forma atomica
+ * para controlar el aforo bajo alta concurrencia.
  */
 @Entity
-@Table(name = "charla")
+@Table(name = "charla",
+        indexes = @Index(name = "idx_charla_sala", columnList = "sala_id"))
 public class Charla {
 
     @Id
@@ -25,8 +30,18 @@ public class Charla {
     @Column(nullable = false, length = 200)
     private String nombre;
 
+    /** Nombre de la sala. Se mantiene sincronizado con la sala enlazada. */
     @Column(nullable = false, length = 100)
     private String sala;
+
+    @Column(name = "sala_id")
+    private Long salaId;
+
+    @Column(length = 150)
+    private String marca;
+
+    @Column(length = 150)
+    private String capacitador;
 
     @Column(name = "hora_inicio", nullable = false)
     private LocalDateTime horaInicio;
@@ -67,6 +82,15 @@ public class Charla {
 
     public String getSala() { return sala; }
     public void setSala(String sala) { this.sala = sala; }
+
+    public Long getSalaId() { return salaId; }
+    public void setSalaId(Long salaId) { this.salaId = salaId; }
+
+    public String getMarca() { return marca; }
+    public void setMarca(String marca) { this.marca = marca; }
+
+    public String getCapacitador() { return capacitador; }
+    public void setCapacitador(String capacitador) { this.capacitador = capacitador; }
 
     public LocalDateTime getHoraInicio() { return horaInicio; }
     public void setHoraInicio(LocalDateTime horaInicio) { this.horaInicio = horaInicio; }

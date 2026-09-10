@@ -1,12 +1,20 @@
 {
   "info": {
-    "name": "PlatformRegister - Backend Evento y Charlas",
-    "description": "Coleccion de endpoints del backend de registro de evento y charlas. Variables: baseUrl, adminKey.",
+    "name": "PlatformRegister - Backend Evento, Charlas y Diplomas",
+    "description": "Coleccion de endpoints del backend de registro de evento, salas, charlas, diplomas y reportes. Variables: baseUrl, adminKey.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
-    { "key": "adminKey", "value": "cambia-esta-clave-admin", "type": "string" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "adminKey",
+      "value": "cambia-esta-clave-admin",
+      "type": "string"
+    }
   ],
   "item": [
     {
@@ -19,9 +27,20 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/asistentes/buscar?dni=12345678",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "asistentes", "buscar"],
-              "query": [{ "key": "dni", "value": "12345678" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "asistentes",
+                "buscar"
+              ],
+              "query": [
+                {
+                  "key": "dni",
+                  "value": "12345678"
+                }
+              ]
             },
             "description": "Busca por DNI. Devuelve {encontrado, asistente}. Si no existe, encontrado=false."
           }
@@ -33,8 +52,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/asistentes/12345678",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "asistentes", "12345678"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "asistentes",
+                "12345678"
+              ]
             }
           }
         },
@@ -45,11 +70,22 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/asistentes?pagina=0&tamano=50",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "asistentes"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "asistentes"
+              ],
               "query": [
-                { "key": "pagina", "value": "0" },
-                { "key": "tamano", "value": "50" }
+                {
+                  "key": "pagina",
+                  "value": "0"
+                },
+                {
+                  "key": "tamano",
+                  "value": "50"
+                }
               ]
             }
           }
@@ -58,16 +94,30 @@
           "name": "Crear nuevo asistente",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"dni\": \"99999999\",\n  \"nombreCompleto\": \"Nuevo Asistente Prueba\",\n  \"celular\": \"987654321\",\n  \"correo\": \"nuevo@correo.com\",\n  \"especialidad\": \"General\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/asistentes",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "asistentes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "asistentes"
+              ]
             },
             "description": "Crea un asistente con tipo 'NUEVO REGISTRADO'."
           }
@@ -79,8 +129,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/asistentes/12345678/ingreso",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "asistentes", "12345678", "ingreso"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "asistentes",
+                "12345678",
+                "ingreso"
+              ]
             },
             "description": "Marca el ingreso al evento general. Un DNI solo puede ingresar una vez."
           }
@@ -92,8 +149,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/asistentes/12345678/ingreso",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "asistentes", "12345678", "ingreso"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "asistentes",
+                "12345678",
+                "ingreso"
+              ]
             }
           }
         },
@@ -104,8 +168,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/asistentes/estadisticas",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "asistentes", "estadisticas"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "asistentes",
+                "estadisticas"
+              ]
             }
           }
         },
@@ -116,15 +186,164 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/asistentes/12345678/charlas",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "asistentes", "12345678", "charlas"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "asistentes",
+                "12345678",
+                "charlas"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "Salas / Charlas",
+      "name": "Salas",
+      "item": [
+        {
+          "name": "Listar salas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/salas?incluirInactivas=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "salas"
+              ],
+              "query": [
+                {
+                  "key": "incluirInactivas",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Abierto: cada dispositivo elige su sala sin usuario ni clave."
+          }
+        },
+        {
+          "name": "Obtener sala",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/salas/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "salas",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear sala (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/salas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "salas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sala 3\",\n  \"orden\": 3,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Editar sala (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/salas/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "salas",
+                "1"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sala 1\",\n  \"orden\": 1,\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Eliminar sala (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/salas/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "salas",
+                "1"
+              ]
+            },
+            "description": "Solo si la sala no tiene charlas."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Charlas",
       "item": [
         {
           "name": "Listar charlas",
@@ -132,25 +351,47 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/charlas?incluirOcultas=false&incluirFinalizadas=true",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "charlas"],
+              "raw": "{{baseUrl}}/api/charlas?salaId=1&incluirOcultas=false&incluirFinalizadas=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "charlas"
+              ],
               "query": [
-                { "key": "incluirOcultas", "value": "false" },
-                { "key": "incluirFinalizadas", "value": "true" }
+                {
+                  "key": "salaId",
+                  "value": "1"
+                },
+                {
+                  "key": "incluirOcultas",
+                  "value": "false"
+                },
+                {
+                  "key": "incluirFinalizadas",
+                  "value": "true"
+                }
               ]
-            }
+            },
+            "description": "Con salaId devuelve solo las charlas de esa sala."
           }
         },
         {
-          "name": "Obtener charla por id",
+          "name": "Obtener charla",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/charlas/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "charlas", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "charlas",
+                "1"
+              ]
             }
           }
         },
@@ -159,38 +400,69 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Admin-Key", "value": "{{adminKey}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Charla de Prueba\",\n  \"sala\": \"Sala A\",\n  \"horaInicio\": \"2026-05-21T09:00:00\",\n  \"horaFin\": \"2026-05-21T10:00:00\",\n  \"aforo\": 80\n}",
-              "options": { "raw": { "language": "json" } }
-            },
             "url": {
               "raw": "{{baseUrl}}/api/charlas",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "charlas"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "charlas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Acabados y terminaciones\",\n  \"salaId\": 1,\n  \"marca\": \"Marca A\",\n  \"capacitador\": \"Juan Perez\",\n  \"horaInicio\": \"2026-05-21T09:00:00\",\n  \"horaFin\": \"2026-05-21T10:00:00\",\n  \"aforo\": 80\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
         {
-          "name": "Actualizar charla / aforo (ADMIN)",
+          "name": "Editar charla (ADMIN)",
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Admin-Key", "value": "{{adminKey}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Charla de Prueba (editada)\",\n  \"sala\": \"Sala B\",\n  \"horaInicio\": \"2026-05-21T09:00:00\",\n  \"horaFin\": \"2026-05-21T10:30:00\",\n  \"aforo\": 100,\n  \"oculta\": false\n}",
-              "options": { "raw": { "language": "json" } }
-            },
             "url": {
               "raw": "{{baseUrl}}/api/charlas/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "charlas", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "charlas",
+                "1"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Acabados y terminaciones\",\n  \"salaId\": 1,\n  \"marca\": \"Marca A\",\n  \"capacitador\": \"Juan Perez\",\n  \"horaInicio\": \"2026-05-21T09:00:00\",\n  \"horaFin\": \"2026-05-21T10:00:00\",\n  \"aforo\": 100,\n  \"oculta\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -198,73 +470,161 @@
           "name": "Eliminar charla (ADMIN)",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "X-Admin-Key", "value": "{{adminKey}}" }],
+            "header": [
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/charlas/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "charlas", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "charlas",
+                "1"
+              ]
             }
           }
         },
         {
-          "name": "Ocultar / mostrar charla (ADMIN)",
+          "name": "Ocultar / mostrar charla",
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Admin-Key", "value": "{{adminKey}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/api/charlas/1/visibilidad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "charlas",
+                "1",
+                "visibilidad"
+              ]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"oculta\": true\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/charlas/1/visibilidad",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "charlas", "1", "visibilidad"]
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
         {
-          "name": "Registrar asistente en charla",
+          "name": "Inscribir DNI en una charla",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/charlas/1/registros",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "charlas",
+                "1",
+                "registros"
+              ]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"dni\": \"12345678\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/charlas/1/registros",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "charlas", "1", "registros"]
-            },
-            "description": "Registro rapido. El asistente debe haber ingresado al evento. Controla aforo y duplicados."
+            "description": "Solo acepta asistentes ya registrados al evento."
           }
         },
         {
-          "name": "Deshacer registro en charla",
+          "name": "Inscribir DNI en varias charlas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/charlas/registros",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "charlas",
+                "registros"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dni\": \"12345678\",\n  \"charlaIds\": [\n    1,\n    2\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Boton Guardar de la pantalla de sala. Informa las que fallaron."
+          }
+        },
+        {
+          "name": "Deshacer inscripcion",
           "request": {
             "method": "DELETE",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/charlas/1/registros/12345678",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "charlas", "1", "registros", "12345678"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "charlas",
+                "1",
+                "registros",
+                "12345678"
+              ]
             }
           }
         },
         {
-          "name": "Listar registrados de una charla",
+          "name": "Listar inscritos de una charla",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/charlas/1/registros",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "charlas", "1", "registros"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "charlas",
+                "1",
+                "registros"
+              ]
             }
           }
         }
@@ -277,17 +637,32 @@
           "name": "Cargar CSV de asistentes (ADMIN)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "X-Admin-Key", "value": "{{adminKey}}" }],
+            "header": [
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              }
+            ],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "archivo", "type": "file", "src": [] }
+                {
+                  "key": "archivo",
+                  "type": "file",
+                  "src": []
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/carga/asistentes",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "carga", "asistentes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carga",
+                "asistentes"
+              ]
             },
             "description": "Sube el CSV de pre-registro. Selecciona el archivo en el campo 'archivo' (Body -> form-data)."
           }
@@ -299,8 +674,315 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/carga/plantilla",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "carga", "plantilla"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carga",
+                "plantilla"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Exportar toda la base a Excel (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carga/exportar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carga",
+                "exportar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Exportar inscritos de una charla (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carga/exportar/charla/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carga",
+                "exportar",
+                "charla",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Configuracion",
+      "item": [
+        {
+          "name": "Aforo del evento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/configuracion/aforo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "configuracion",
+                "aforo"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cambiar aforo del evento (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/configuracion/aforo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "configuracion",
+                "aforo"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"aforo\": 5000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "0 = sin limite."
+          }
+        },
+        {
+          "name": "Calibracion del diploma",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/configuracion/diploma",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "configuracion",
+                "diploma"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Guardar calibracion del diploma (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/configuracion/diploma",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "configuracion",
+                "diploma"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tamanoHoja\": \"A4\",\n  \"anchoHoja\": 297,\n  \"altoHoja\": 210,\n  \"orientacion\": \"horizontal\",\n  \"desplazamientoX\": 0,\n  \"desplazamientoY\": 0,\n  \"fuente\": \"Georgia, 'Times New Roman', serif\",\n  \"nombre\": {\n    \"visible\": true,\n    \"x\": 20,\n    \"y\": 112,\n    \"ancho\": 257,\n    \"tamano\": 32,\n    \"alineacion\": \"centro\",\n    \"negrita\": true,\n    \"mayusculas\": true\n  },\n  \"charla\": {\n    \"visible\": true,\n    \"x\": 20,\n    \"y\": 70,\n    \"ancho\": 257,\n    \"tamano\": 16,\n    \"alineacion\": \"centro\",\n    \"negrita\": true,\n    \"mayusculas\": false\n  },\n  \"marca\": {\n    \"visible\": true,\n    \"x\": 20,\n    \"y\": 84,\n    \"ancho\": 257,\n    \"tamano\": 13,\n    \"alineacion\": \"centro\",\n    \"negrita\": false,\n    \"mayusculas\": false\n  },\n  \"capacitador\": {\n    \"visible\": true,\n    \"x\": 20,\n    \"y\": 95,\n    \"ancho\": 257,\n    \"tamano\": 13,\n    \"alineacion\": \"centro\",\n    \"negrita\": false,\n    \"mayusculas\": false\n  },\n  \"fecha\": {\n    \"visible\": true,\n    \"x\": 20,\n    \"y\": 160,\n    \"ancho\": 257,\n    \"tamano\": 12,\n    \"alineacion\": \"centro\",\n    \"negrita\": false,\n    \"mayusculas\": false\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Se ajusta una sola vez y vale para todas las hojas."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Diplomas",
+      "item": [
+        {
+          "name": "Diplomas por DNI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/diplomas/12345678",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "diplomas",
+                "12345678"
+              ]
+            },
+            "description": "Devuelve la persona y todas sus charlas con el estado del diploma."
+          }
+        },
+        {
+          "name": "Resumen de diplomas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/diplomas/resumen",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "diplomas",
+                "resumen"
+              ]
+            },
+            "description": "Total, pendientes, impresos y reimpresos."
+          }
+        },
+        {
+          "name": "Marcar como impresos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/diplomas/impresion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "diplomas",
+                "impresion"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registroIds\": [\n    1,\n    2,\n    3\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Se llama despues de mandar las hojas a la impresora."
+          }
+        },
+        {
+          "name": "Volver a pendiente",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/diplomas/1/pendiente",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "diplomas",
+                "1",
+                "pendiente"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reportes",
+      "item": [
+        {
+          "name": "Asistencia por especialidad",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/especialidad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "especialidad"
+              ]
+            },
+            "description": "En la base, ingresaron, faltantes y % por especialidad (DNI unicos)."
+          }
+        },
+        {
+          "name": "Exportar por especialidad a Excel",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reportes/especialidad/excel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reportes",
+                "especialidad",
+                "excel"
+              ]
             }
           }
         }

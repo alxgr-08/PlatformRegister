@@ -64,10 +64,27 @@ public final class AsistenteDto {
     ) {
     }
 
-    /** Conteos generales para el tablero. */
+    /**
+     * Conteos del tablero de registro general.
+     *
+     * "En base" es todo lo que existe en la tabla; "ingresados" es quien ya
+     * marco su ingreso al evento. De los ingresados se separa cuantos venian
+     * pre-registrados y cuantos se crearon en puerta, con su porcentaje sobre
+     * el total de ingresados.
+     */
     public record Estadisticas(
             long totalAsistentes,
-            long totalIngresadosAlEvento
+            long totalIngresadosAlEvento,
+            long preRegistradosEnBase,
+            long nuevosEnBase,
+            long preRegistradosIngresados,
+            long nuevosIngresados,
+            int porcentajeIngresados,
+            int porcentajePreRegistrados,
+            int porcentajeNuevos,
+            int aforoEvento,
+            int porcentajeAforo,
+            boolean aforoSinLimite
     ) {
     }
 }
