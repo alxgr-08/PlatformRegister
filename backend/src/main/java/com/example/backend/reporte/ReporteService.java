@@ -77,18 +77,26 @@ public class ReporteService {
             order by s.orden, s.nombre
             """;
 
+    /**
+     * Una fila por persona de la base, haya ingresado o no. La columna
+     * "ingreso" permite separar a los que vinieron de los que faltaron, que es
+     * justo lo que el reporte por especialidad muestra como numero.
+     */
     private static final String SQL_POR_PERSONA = """
             select a.dni, a.nombre_completo, coalesce(a.especialidad, '') as especialidad,
-                   a.tipo_registro, a.fecha_ingreso_evento,
+                   a.tipo_registro,
+                   case when a.fecha_ingreso_evento is not null then 'SI' else 'NO' end as ingreso,
+                   a.fecha_ingreso_evento,
+                   coalesce(a.celular, '') as celular, coalesce(a.correo, '') as correo,
                    coalesce(string_agg(distinct c.sala, ' | ' order by c.sala), '')   as salas,
                    coalesce(string_agg(c.nombre, ' | ' order by c.hora_inicio), '')   as charlas,
                    count(rc.id)                                                       as total_charlas
             from asistente a
             left join registro_charla rc on rc.asistente_id = a.id
             left join charla c           on c.id = rc.charla_id
-            where a.fecha_ingreso_evento is not null
-            group by a.id, a.dni, a.nombre_completo, a.especialidad, a.tipo_registro, a.fecha_ingreso_evento
-            order by a.nombre_completo
+            group by a.id, a.dni, a.nombre_completo, a.especialidad, a.tipo_registro,
+                     a.fecha_ingreso_evento, a.celular, a.correo
+            order by a.especialidad, a.nombre_completo
             """;
 
     private static final String SQL_POR_SALA_CHARLA = """
@@ -212,15 +220,21 @@ public class ReporteService {
                 });
     }
 
-    /** Una fila por persona que ingreso, con todas sus salas y charlas. */
+    /**
+     * Una fila por persona de la base, con nombre, DNI y especialidad, haya
+     * ingresado al evento o no. Sirve para saber quien es cada uno detras de
+     * los numeros del reporte por especialidad, incluidos los faltantes.
+     */
     public void exportarPorPersonaExcel(OutputStream salida) {
         List<Object[]> filas = jdbcTemplate.query(SQL_POR_PERSONA, (rs, i) -> new Object[]{
                 rs.getString("dni"), rs.getString("nombre_completo"), rs.getString("especialidad"),
-                rs.getString("tipo_registro"), texto(rs.getTimestamp("fecha_ingreso_evento")),
+                rs.getString("ingreso"), texto(rs.getTimestamp("fecha_ingreso_evento")),
+                rs.getString("tipo_registro"), rs.getString("celular"), rs.getString("correo"),
                 rs.getInt("total_charlas"), rs.getString("salas"), rs.getString("charlas"),
         });
         escribir(salida, "Por persona",
-                new String[]{"DNI", "NOMBRE", "ESPECIALIDAD", "TIPO REGISTRO", "INGRESO AL EVENTO",
+                new String[]{"DNI", "NOMBRE", "ESPECIALIDAD", "INGRESO AL EVENTO",
+                        "FECHA DE INGRESO", "TIPO REGISTRO", "CELULAR", "CORREO",
                         "N CHARLAS", "SALAS", "CHARLAS"},
                 hoja -> volcar(hoja, filas));
     }

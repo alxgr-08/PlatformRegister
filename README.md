@@ -112,10 +112,19 @@ los textos** encima. Por eso hay que calibrar una vez dónde cae cada texto.
   tiene la charla de cada sala, cuántos cupos quedan y si está llena. Con
   "Hora anterior" y "Hora siguiente" recorres el día. Sirve para saber en el
   momento qué sala ya no admite más gente.
-- **Otros reportes para descargar** en Excel: por persona (con todas sus salas
-  y charlas), por sala y charla (listado de asistentes), detalle completo (una
-  fila por DNI y charla, con marca, capacitador y estado del diploma) y aforos
-  por horario (todas las salas y franjas del día).
+- **Otros reportes para descargar** en Excel:
+  - **Por persona:** la base completa, una fila por DNI con nombre,
+    especialidad, celular, correo y una columna **INGRESO AL EVENTO** (SI / NO).
+    Es el que responde *"¿quiénes son los que faltaron?"*: los números del
+    cuadro por especialidad salen de aquí, con nombre y apellido.
+  - **Por sala y charla:** listado de asistentes de cada charla.
+  - **Detalle completo:** una fila por DNI y charla, con marca, capacitador y
+    estado del diploma.
+  - **Aforos por horario:** todas las salas y franjas del día.
+
+> En **Base de Datos**, "Asistentes que ingresaron al evento" descarga solo a
+> quienes ya marcaron su ingreso. Para la base completa —con los que no
+> vinieron— usa **Por persona**.
 
 **Base de Datos** (admin) mantiene lo de siempre: importar la base previa del
 evento desde Excel y exportar la base completa o los inscritos de una charla.
