@@ -275,7 +275,7 @@ export default function Reportes() {
             <FilaDescarga
               icono={<Users className="h-5 w-5 text-blue-600" />}
               titulo="Por persona"
-              detalle="DNI, nombre, especialidad, todas sus salas y charlas"
+              detalle="Quién es cada persona: DNI, nombre, especialidad y si ingresó o no"
               cargando={descargando === 'persona'}
               onClick={() => descargar('persona', exportarReportePorPersona)}
             />

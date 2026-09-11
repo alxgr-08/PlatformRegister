@@ -352,20 +352,15 @@ public class CargaService {
         return valor == null ? "" : valor;
     }
 
+    /**
+     * Escribe DNI y celular como TEXTO, nunca como numero.
+     *
+     * Tratarlos como numero rompia los que empiezan en cero: un DNI 07654321
+     * salia como 7654321, y Excel los mostraba con decimales. Son documentos,
+     * no cantidades: se guardan tal cual vinieron.
+     */
     private void escribirNumeroOTexto(Cell celda, String valor) {
-        if (valor == null || valor.isBlank()) {
-            celda.setCellValue("");
-            return;
-        }
-        if (valor.matches("\\d{1,18}")) {
-            try {
-                celda.setCellValue(Long.parseLong(valor));
-                return;
-            } catch (NumberFormatException ignored) {
-                // cae a texto
-            }
-        }
-        celda.setCellValue(valor);
+        celda.setCellValue(valorSeguro(valor));
     }
 
     // ============================================================ IMPORTAR CSV
