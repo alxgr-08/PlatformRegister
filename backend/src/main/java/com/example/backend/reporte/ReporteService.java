@@ -6,8 +6,8 @@ import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -289,9 +289,16 @@ public class ReporteService {
         void escribir(Sheet hoja);
     }
 
+    /**
+     * Arma la hoja y la manda al cliente. Usa el modo "streaming" de POI: solo
+     * mantiene unas pocas filas en memoria y el resto las va escribiendo, para
+     * que un reporte grande no infle la memoria del servidor.
+     */
     private void escribir(OutputStream salida, String nombreHoja, String[] cabeceras, Contenido contenido) {
-        try (Workbook wb = new XSSFWorkbook()) {
-            Sheet hoja = wb.createSheet(nombreHoja);
+        SXSSFWorkbook wb = new SXSSFWorkbook(100);
+        try {
+            SXSSFSheet hoja = wb.createSheet(nombreHoja);
+            hoja.trackAllColumnsForAutoSizing();
 
             Font negrita = wb.createFont();
             negrita.setBold(true);
@@ -311,6 +318,14 @@ public class ReporteService {
         } catch (IOException e) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "No se pudo generar el Excel del reporte.");
+        } finally {
+            // Borra los archivos temporales que deja el modo streaming.
+            wb.dispose();
+            try {
+                wb.close();
+            } catch (IOException ignorado) {
+                // El flujo ya se cerro: no hay nada que hacer.
+            }
         }
     }
 

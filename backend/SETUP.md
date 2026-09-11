@@ -237,3 +237,32 @@ atomico y los duplicados con una restriccion unica en la base de datos.
 - El `pom.xml` se ajusto a **Java 21** (LTS, instalado en el equipo). El proyecto venia
   apuntando a Java 26; si se instala ese JDK se puede volver a subir la version.
 - `application-local.properties` NO se versiona (contiene credenciales).
+
+---
+
+## 8. Despliegue en Render (memoria)
+
+El plan gratuito da **512 MB de RAM y medio CPU**. El `Dockerfile` ya arranca la
+aplicacion con los ajustes que le corresponden a ese tamano:
+
+| Ajuste | Para que |
+|---|---|
+| `-XX:MaxRAMPercentage=50.0` | Limita el heap a 256 MB. La aplicacion no pasa de ~40 MB ni con el evento completo encima, asi que sobra. Con el 75 % anterior la JVM se quedaba con casi todo el contenedor sin necesitarlo. |
+| `-XX:MaxMetaspaceSize=128m` | Techo a la memoria de las clases cargadas. |
+| `-Xss512k` | Pilas de hilo mas chicas: hay muchos hilos atendiendo peticiones. |
+| `-XX:+UseSerialGC` | Con medio CPU conviene el recolector mas simple, que no levanta hilos que compitan por ese poco procesador. |
+| `-XX:+ExitOnOutOfMemoryError` | Si faltara memoria, el contenedor reinicia limpio en vez de quedarse colgado. |
+
+Medido con el evento completo encima (5000 personas en base, 2000 ingresos,
+2000 inscripciones, descargas de Excel en paralelo e importacion de 5000 filas):
+
+- **antes:** pico de 491 MB de 512 (96 %), 21 MB de margen;
+- **ahora:** pico de 367 MB de 512 (72 %), 145 MB de margen.
+
+Los Excel de reportes se generan en modo *streaming* (`SXSSFWorkbook`), igual
+que la exportacion de la base: solo mantienen unas pocas filas en memoria, asi
+que un reporte grande no infla el servidor.
+
+> El plan gratuito de Render **apaga el servicio tras unos 15 minutos sin uso** y
+> despertarlo tarda entre 30 y 60 segundos. Para un evento conviene abrir el
+> sistema unos minutos antes, o pasar al plan pago ese dia.
