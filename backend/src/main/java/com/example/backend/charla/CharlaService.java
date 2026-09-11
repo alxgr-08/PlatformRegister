@@ -4,9 +4,11 @@ import com.example.backend.asistente.Asistente;
 import com.example.backend.asistente.AsistenteRepository;
 import com.example.backend.charla.dto.CharlaDto;
 import com.example.backend.common.ApiException;
+import com.example.backend.config.MigracionDatos;
 import com.example.backend.sala.Sala;
 import com.example.backend.sala.SalaRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,15 +30,28 @@ public class CharlaService {
     private final RegistroCharlaRepository registroRepo;
     private final AsistenteRepository asistenteRepo;
     private final SalaRepository salaRepo;
+    private final JdbcTemplate jdbcTemplate;
 
     public CharlaService(CharlaRepository charlaRepo,
                          RegistroCharlaRepository registroRepo,
                          AsistenteRepository asistenteRepo,
-                         SalaRepository salaRepo) {
+                         SalaRepository salaRepo,
+                         JdbcTemplate jdbcTemplate) {
         this.charlaRepo = charlaRepo;
         this.registroRepo = registroRepo;
         this.asistenteRepo = asistenteRepo;
         this.salaRepo = salaRepo;
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    /**
+     * Recalcula el contador de inscritos de todas las charlas a partir de las
+     * inscripciones reales. Sirve para destrabar una sala que aparece llena
+     * sin tener a nadie dentro. Devuelve cuantas charlas se corrigieron.
+     */
+    @Transactional
+    public int recalcularCupos() {
+        return jdbcTemplate.update(MigracionDatos.SQL_SINCRONIZAR_CUPOS);
     }
 
     /**

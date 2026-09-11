@@ -31,6 +31,12 @@ Entra con **"Ingresar como Admin"** en la barra superior y ve a **Configuración
 4. Cada charla se puede **ocultar** sin borrarla, para sacarla de la pantalla
    de la sala sin perder sus inscritos.
 
+> **Si una sala aparece llena sin tener a nadie dentro**, usa el botón
+> **"Recalcular cupos"** arriba a la derecha: vuelve a contar los inscritos
+> reales de cada charla. El backend además hace esa corrección solo cada vez
+> que arranca. Si quisieras hacerlo desde la base, está
+> [`backend/reparar_cupos.sql`](backend/reparar_cupos.sql).
+
 El evento **no tiene tope de personas**. En **Asistentes**, solo el administrador
 ve el **contador de asistentes** y puede sumar a mano a la gente que entró sin
 pasar por el registro (por ejemplo, "agregar 20"). Eso es únicamente un número

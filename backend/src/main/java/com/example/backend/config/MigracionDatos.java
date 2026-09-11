@@ -25,6 +25,19 @@ public class MigracionDatos implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(MigracionDatos.class);
 
+    /** Deja "registrados" igual a las inscripciones que existen de verdad. */
+    public static final String SQL_SINCRONIZAR_CUPOS = """
+            update charla c
+            set registrados = sub.total
+            from (
+                select c2.id,
+                       (select count(*) from registro_charla rc where rc.charla_id = c2.id) as total
+                from charla c2
+            ) sub
+            where c.id = sub.id
+              and c.registrados is distinct from sub.total
+            """;
+
     private final JdbcTemplate jdbc;
 
     public MigracionDatos(JdbcTemplate jdbc) {
@@ -39,6 +52,7 @@ public class MigracionDatos implements ApplicationRunner {
             enlazarCharlasSinSala();
             numerarSalasSinOrden();
             normalizarDiplomas();
+            sincronizarCupos();
         } catch (RuntimeException e) {
             // No se corta el arranque: la aplicacion debe levantar igual y el
             // administrador puede ejecutar migracion_v2.sql si hiciera falta.
@@ -90,6 +104,18 @@ public class MigracionDatos implements ApplicationRunner {
                 from numeradas
                 where s.id = numeradas.id
                 """);
+    }
+
+    /**
+     * Recalcula el contador de inscritos de cada charla a partir de las
+     * inscripciones reales. Corrige las salas que aparecian llenas sin nadie
+     * dentro, por ejemplo despues de reemplazar la base de asistentes.
+     */
+    private void sincronizarCupos() {
+        int filas = jdbc.update(SQL_SINCRONIZAR_CUPOS);
+        if (filas > 0) {
+            log.info("Migracion: se corrigio el contador de inscritos de {} charla(s).", filas);
+        }
     }
 
     /** Deja en estado pendiente los diplomas que venian de la version anterior. */

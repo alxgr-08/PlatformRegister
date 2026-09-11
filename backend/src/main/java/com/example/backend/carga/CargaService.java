@@ -130,6 +130,9 @@ public class CargaService {
         // Al ir dentro de una transaccion, si la carga falla se restaura el estado previo.
         jdbcTemplate.update("delete from registro_charla");
         jdbcTemplate.update("delete from asistente");
+        // Al borrar las inscripciones hay que dejar en cero el contador de cada
+        // charla; si no, las salas siguen apareciendo llenas sin nadie dentro.
+        jdbcTemplate.update("update charla set registrados = 0");
         LectorExcel lector = new LectorExcel();
         try (OPCPackage pkg = OPCPackage.open(archivo.getInputStream())) {
             ReadOnlySharedStringsTable strings = new ReadOnlySharedStringsTable(pkg);
