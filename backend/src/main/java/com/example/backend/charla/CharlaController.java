@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Modulo de Charlas: gestion de charlas, aforos y registro de asistentes.
@@ -96,6 +97,16 @@ public class CharlaController {
     @DeleteMapping("/{id}/registros/{dni}")
     public CharlaDto.Respuesta deshacerRegistro(@PathVariable Long id, @PathVariable String dni) {
         return service.deshacerRegistro(id, dni);
+    }
+
+    /**
+     * Recalcula los cupos de todas las charlas a partir de las inscripciones
+     * reales. Destraba las salas que figuran llenas sin nadie dentro.
+     * Requiere X-Admin-Key.
+     */
+    @PostMapping("/recalcular-cupos")
+    public Map<String, Integer> recalcularCupos() {
+        return Map.of("charlasCorregidas", service.recalcularCupos());
     }
 
     /** Lista los asistentes inscritos en la charla. */

@@ -374,6 +374,13 @@ export const api = {
       method: 'DELETE',
     }),
 
+  /** Recalcula los cupos de todas las charlas desde las inscripciones reales. */
+  recalcularCupos: () =>
+    request<{ charlasCorregidas: number }>('/api/charlas/recalcular-cupos', {
+      method: 'POST',
+      admin: true,
+    }),
+
   cambiarVisibilidadCharla: (charlaId: number, oculta: boolean) =>
     request<Charla>(`/api/charlas/${charlaId}/visibilidad`, { method: 'PATCH', body: { oculta } }),
 

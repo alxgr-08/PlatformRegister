@@ -134,8 +134,14 @@ lleguen.
 | PATCH  | `/api/charlas/{id}/visibilidad` | Oculta / muestra charla |
 | POST   | `/api/charlas/{id}/registros` | Inscribe un DNI en la charla |
 | POST   | `/api/charlas/registros` | Inscribe un DNI en varias charlas de una vez |
+| POST   | `/api/charlas/recalcular-cupos` | Recalcula los inscritos de todas las charlas - **ADMIN** |
 | DELETE | `/api/charlas/{id}/registros/{dni}` | Deshace una inscripcion |
 | GET    | `/api/charlas/{id}/registros` | Lista los inscritos de la charla |
+
+El contador `registrados` de cada charla se recalcula desde las inscripciones
+reales al arrancar el backend, al reemplazar la base de asistentes y cuando se
+llama a `/api/charlas/recalcular-cupos`. Asi una sala no puede quedarse marcada
+como llena sin tener a nadie dentro.
 
 Solo se puede inscribir a personas que **ya registraron su ingreso al evento**. La
 base impide inscribir dos veces el mismo DNI en la misma charla, y el servicio

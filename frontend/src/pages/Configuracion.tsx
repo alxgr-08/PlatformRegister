@@ -7,6 +7,7 @@ import {
   Pencil,
   Plus,
   Presentation,
+  RefreshCw,
   Save,
   Settings,
   Trash2,
@@ -153,6 +154,7 @@ export default function Configuracion() {
         icono={<Settings className="h-6 w-6" />}
         titulo="Configuración de salas y charlas"
         subtitulo="Administra las salas y la programación del evento"
+        accion={<BotonRecalcular onCambios={recargar} onError={manejarError} />}
       />
 
       <div className="mx-auto max-w-6xl p-4 sm:p-6">
@@ -285,6 +287,60 @@ export default function Configuracion() {
         </div>
       </div>
     </>
+  )
+}
+
+/**
+ * Recalcula los cupos desde las inscripciones reales. Se usa cuando una sala
+ * figura llena sin tener a nadie dentro, por ejemplo despues de reemplazar la
+ * base de asistentes.
+ */
+function BotonRecalcular({
+  onCambios,
+  onError,
+}: {
+  onCambios: () => void
+  onError: (e: unknown) => void
+}) {
+  const { notificar } = useToast()
+  const [ocupado, setOcupado] = useState(false)
+
+  async function recalcular() {
+    if (
+      !confirm(
+        '¿Recalcular los cupos de todas las charlas?\n\n' +
+          'Vuelve a contar los inscritos reales de cada charla. Úsalo si una sala aparece llena sin tener a nadie dentro.',
+      )
+    ) {
+      return
+    }
+    setOcupado(true)
+    try {
+      const r = await api.recalcularCupos()
+      notificar(
+        'exito',
+        r.charlasCorregidas > 0
+          ? `${r.charlasCorregidas} charla(s) corregidas.`
+          : 'Los cupos ya estaban correctos.',
+      )
+      onCambios()
+    } catch (e) {
+      onError(e)
+    } finally {
+      setOcupado(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={recalcular}
+      disabled={ocupado}
+      title="Vuelve a contar los inscritos reales de cada charla"
+      className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+    >
+      <RefreshCw className={`h-4 w-4 ${ocupado ? 'animate-spin' : ''}`} />
+      <span className="hidden sm:inline">Recalcular cupos</span>
+    </button>
   )
 }
 
